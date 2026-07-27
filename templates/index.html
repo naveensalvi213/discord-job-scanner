@@ -1,0 +1,2908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Job Scanner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-decor">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <div class="logo-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="logo">
+                    <img src="/static/logo.jpg" alt="Logo" style="width: 42px; height: 42px; border-radius: 8px; border: 2px solid #5865F2; object-fit: cover; box-shadow: 0 0 10px rgba(88, 101, 242, 0.4);">
+                    <h1>Discord Job Scanner</h1>
+                </div>
+                <button type="button" id="btn-shutdown-server" class="btn btn-secondary btn-sm" style="background: rgba(255, 85, 85, 0.1); border-color: rgba(255, 85, 85, 0.2); color: #ff8585; padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;">Shutdown Server</button>
+            </div>
+            <p class="subtitle">Scan all your joined servers for video editing and thumbnail designing jobs posted today.</p>
+        </header>
+
+        <nav class="main-nav">
+            <button type="button" id="nav-btn-scanner" class="main-nav-btn active">🔍 Job Scanner</button>
+            <button type="button" id="nav-btn-poster" class="main-nav-btn">📢 One-Click Ad Poster</button>
+            <button type="button" id="nav-btn-watcher" class="main-nav-btn">🚨 Real-Time Watcher</button>
+        </nav>
+
+        <main>
+            <!-- Global Account Switcher Card -->
+            <section class="glass-card" style="margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; width: 100%;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.3rem;">Active Discord Account</h2>
+                        <p class="subtitle" style="margin: 0; font-size: 0.85rem;">Manage and switch between different Discord accounts.</p>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Open Links In</span>
+                            <select id="preferred-browser-select" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.95rem; min-width: 170px; font-family: inherit; height: 38px;">
+                                <option value="default">System Default</option>
+                                <option value="edge">Microsoft Edge</option>
+                                <option value="chrome">Google Chrome</option>
+                                <option value="discord_app">Discord Desktop App</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Active Account</span>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="poster-account-select" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.95rem; min-width: 180px; font-family: inherit; height: 38px;">
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <button type="button" id="btn-add-account" class="btn btn-secondary btn-sm" style="font-size: 0.85rem; padding: 6px 12px; height: 38px;">+ Add Account</button>
+                                <button type="button" id="btn-delete-account" class="btn btn-secondary btn-sm btn-danger" style="font-size: 0.85rem; padding: 6px 12px; height: 38px; background: rgba(255,85,85,0.15); border-color: rgba(255,85,85,0.3); color: #ff8585;">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Job Scanner Module -->
+            <div id="scanner-view-module" class="module-view">
+                <!-- Control Panel -->
+                <section class="glass-card control-panel">
+                    <div class="form-group">
+                        <label for="discord-token">Discord User Token</label>
+                        <div class="token-input-wrapper">
+                            <input type="password" id="discord-token" placeholder="Paste your Discord authorization token here..." autocomplete="off">
+                            <button type="button" id="toggle-token-visibility" class="btn-icon">👁️</button>
+                        </div>
+                        <p class="help-text">Your token is stored locally in your browser and never sent to any third-party server except Discord's official API.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Keywords to Scan</label>
+                        <div class="keyword-editor">
+                            <input type="text" id="new-keyword-input" placeholder="Type new keyword and press Add..." autocomplete="off">
+                            <button type="button" id="btn-add-keyword" class="btn btn-secondary btn-sm">Add Keyword</button>
+                        </div>
+                        <div class="keywords-list" id="keywords-container">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Exclude Keywords (Skip posts containing these words)</label>
+                        <div class="keyword-editor">
+                            <input type="text" id="exclude-keyword-input" placeholder="Type word to skip (e.g. portfolio, unpaid) and press Add..." autocomplete="off">
+                            <button type="button" id="btn-add-exclude" class="btn btn-secondary btn-sm">Add Exclude</button>
+                        </div>
+                        <div class="keywords-list" id="exclude-container">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Channel IDs (Leave blank to scan ALL joined servers)</label>
+                        <div class="keyword-editor" style="flex-direction: column; align-items: stretch;">
+                            <textarea id="channel-id-input" placeholder="Paste one or more Channel IDs (one per line)..." autocomplete="off" rows="2" style="resize: vertical; min-height: 36px; font-family: inherit; font-size: inherit; padding: 8px 10px;"></textarea>
+                            <button type="button" id="btn-add-channel" class="btn btn-secondary btn-sm" style="align-self: flex-end; margin-top: 6px;">Add Channels</button>
+                        </div>
+                        <p class="help-text">Pinning channels is a client-side layout feature and cannot be read automatically. Add your preferred Channel IDs here to scan ONLY those channels directly.</p>
+                        <div class="keywords-list" id="channels-container">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Max Post Age (Hours)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" id="hours-limit-input" value="24" min="1" max="720" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.95rem; width: 80px; font-family: inherit;">
+                            <span style="font-size: 0.9rem; color: var(--text-secondary);">Filter posts by age (e.g. 24 = last 24 hours, 12 = last 12 hours)</span>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btn-scan" class="btn btn-primary">Start Scan</button>
+                    </div>
+                </section>
+
+                <!-- Progress / Status Card -->
+                <section id="status-card" class="glass-card status-card hidden">
+                    <div class="status-header">
+                        <h3 id="status-text">Scanning in progress...</h3>
+                        <div class="status-actions">
+                            <button type="button" id="btn-stop" class="btn btn-secondary btn-sm btn-danger">Stop Scan</button>
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <p id="progress-detail" class="progress-detail">Initializing...</p>
+                </section>
+
+                <!-- Error Banner -->
+                <div id="error-card" class="glass-card hidden" style="background: rgba(255, 85, 85, 0.1); border: 1px solid rgba(255, 85, 85, 0.2); border-radius: var(--radius-md); padding: 15px; margin-bottom: 20px; color: #ff8585; display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 1.5rem;">⚠️</div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 4px; font-size: 0.95rem;">Scan Error Encountered</strong>
+                        <span id="error-detail" style="font-size: 0.88rem; opacity: 0.95;">Something went wrong.</span>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <section class="results-section">
+                    <div class="tabs-container">
+                        <button type="button" id="tab-current" class="tab-btn active">Latest Scan (<span id="match-count">0</span>)</button>
+                        <button type="button" id="tab-history" class="tab-btn">Saved History (<span id="history-count">0</span>)</button>
+                        <button type="button" id="btn-clear-history" class="btn btn-secondary btn-sm hidden" style="margin-left: auto; background: rgba(255,85,85,0.15); border-color: rgba(255,85,85,0.3); color: #ff8585;">Clear History</button>
+                    </div>
+                    
+                    <div id="current-scan-view" class="tab-content-view">
+                        <div id="results-list" class="results-grid">
+                            <div class="no-results">
+                                <div class="icon">🔍</div>
+                                <p>No scans performed yet. Enter your token and click "Start Scan" to check your servers.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="history-view" class="tab-content-view hidden">
+                        <div id="history-list" class="results-grid">
+                            <div class="no-results">
+                                <div class="icon">📦</div>
+                                <p>No historical matches saved yet. Completed scans will automatically display here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Ad Poster Module -->
+            <div id="poster-view-module" class="module-view hidden">
+                <div class="poster-container">
+
+                    <section class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; width: 100%;">
+                            <h2 style="margin: 0;">Draft Your Advertisement</h2>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <select id="poster-preset-select" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 0.85rem; min-width: 140px; font-family: inherit;">
+                                    <option value="">-- Load Preset --</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <button type="button" id="btn-save-preset" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; padding: 6px 10px;">Save Preset</button>
+                                <button type="button" id="btn-delete-preset" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; padding: 6px 10px; color: #ff8585; border-color: rgba(255,85,85,0.3); background: rgba(255,85,85,0.1);">Delete Preset</button>
+                            </div>
+                        </div>
+                        <p class="subtitle" style="margin-bottom: 15px;">Compose your message text, optional title (for forums), and attach multiple images.</p>
+                        
+                        <div class="forum-title-wrapper">
+                            <label for="ad-forum-title" style="display: block; margin-bottom: 8px; font-weight: 600;">Forum Post Title (Only used when posting to Forums)</label>
+                            <input type="text" id="ad-forum-title" placeholder="Enter title for forum threads..." autocomplete="off">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ad-content">Ad Text Content</label>
+                            <textarea id="ad-content" rows="6" placeholder="Write your advertising post here (supports markdown, new lines, emojis)..." style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 15px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Attach Ad Images / Thumbnails (Multiple Allowed)</label>
+                            <div class="file-upload-wrapper">
+                                <div class="icon" style="font-size: 1.8rem; margin-bottom: 5px;">🖼️</div>
+                                <span>Drag & Drop or Click to Upload Images</span>
+                                <input type="file" id="ad-image-file" accept="image/*" multiple>
+                                <div id="ad-image-preview" class="file-preview hidden" style="white-space: pre-line; line-height: 1.4;"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label>Attach Forum Cover Image (Optional - will be displayed as thread card preview)</label>
+                            <div class="file-upload-wrapper" id="ad-forum-cover-upload-wrapper" style="border-style: dotted; padding: 12px;">
+                                <div class="icon" style="font-size: 1.5rem; margin-bottom: 5px;">📔</div>
+                                <span>Select Forum Cover Image</span>
+                                <input type="file" id="ad-forum-cover-image" accept="image/*">
+                            </div>
+                            <div id="ad-forum-cover-preview" class="file-preview hidden" style="margin-top: 8px;"></div>
+                        </div>
+                    </section>
+
+                    <!-- Batch Posting Card -->
+                    <section class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; width: 100%;">
+                            <div>
+                                <h2 style="margin: 0;">Automated Batch Posting</h2>
+                                <p class="subtitle" style="margin: 0;">Post to all channels below with a custom delay to bypass anti-spam checks.</p>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="batch-post-delay" style="font-size: 0.9rem; font-weight: 600;">Delay:</label>
+                                    <input type="number" id="batch-post-delay" value="5" min="2" max="60" style="width: 65px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px; border-radius: var(--radius-sm); font-size: 0.9rem; text-align: center; font-family: inherit;">
+                                    <span style="font-size: 0.9rem; color: var(--text-secondary);">sec</span>
+                                </div>
+                                <button type="button" id="btn-batch-post" class="btn btn-primary" style="padding: 10px 20px; font-weight: 700; background: #5865f2; border-color: #5865f2; box-shadow: 0 0 10px rgba(88, 101, 242, 0.3);">🚀 Post to All Channels</button>
+                            </div>
+                        </div>
+
+                        <!-- Batch posting progress bar -->
+                        <div id="batch-progress-card" class="hidden" style="margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 id="batch-progress-title" style="margin: 0; font-size: 0.95rem; font-weight: 600;">Batch Posting in progress...</h4>
+                                <span id="batch-progress-count" style="font-size: 0.9rem; color: #a2a8ff; font-weight: bold;">0 / 0</span>
+                            </div>
+                            <div class="progress-bar-container" style="margin-bottom: 10px; background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div id="batch-progress-fill" class="progress-fill" style="width: 0%; background: #5865f2; height: 100%;"></div>
+                            </div>
+                            <p id="batch-progress-detail" style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Initializing...</p>
+                        </div>
+                    </section>
+
+
+
+                    <section class="glass-card">
+                        <h2>One-Click Poster Channels</h2>
+                        <p class="subtitle" style="margin-bottom: 15px;">Add the channel IDs where you want to post your ads. Forums will let you select tags.</p>
+                        
+                        <div class="keyword-editor" style="margin-bottom: 20px;">
+                            <input type="text" id="poster-channel-input" placeholder="Paste Channel ID and press Add..." autocomplete="off">
+                            <button type="button" id="btn-poster-add-channel" class="btn btn-secondary btn-sm">Add Channel</button>
+                        </div>
+
+                        <div id="poster-channels-list" class="channel-grid">
+                            <!-- Populated dynamically via JS -->
+                            <div class="no-results" style="grid-column: 1 / -1; padding: 30px;">
+                                <div class="icon">📢</div>
+                                <p>No posting channels added yet. Enter a Channel ID to get started.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Real-Time Watcher Module -->
+            <div id="watcher-view-module" class="module-view hidden">
+                <div class="watcher-container">
+                    
+                    <!-- Watcher Control Card -->
+                    <section class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; width: 100%;">
+                            <div>
+                                <h2 style="margin: 0;">Real-Time Notifier</h2>
+                                <p class="subtitle" style="margin: 0;">Monitor target channels continuously and get instant alert popups when keywords match.</p>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <button type="button" id="btn-watcher-toggle" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; background: #2ecc71; border-color: #2ecc71; box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);">▶ Start Monitoring</button>
+                            </div>
+                        </div>
+                        
+                        <div id="watcher-status-card" class="hidden" style="margin-top: 20px; padding: 15px; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.2); border-radius: var(--radius-md); display: flex; align-items: center; gap: 12px;">
+                            <div class="pulse-icon" style="background: #2ecc71; width: 10px; height: 10px; box-shadow: 0 0 8px #2ecc71;"></div>
+                            <span style="font-weight: bold; color: #2ecc71; font-size: 0.95rem;">Active Real-Time Scan:</span>
+                            <span id="watcher-status-text" style="font-size: 0.9rem; color: var(--text-secondary);">Polling channels for new posts...</span>
+                        </div>
+
+                        <!-- System Settings & Autostart Panel -->
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.88rem; color: var(--text-secondary);">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                <input type="checkbox" id="chk-autostart-windows" style="cursor: pointer; width: 15px; height: 15px;">
+                                <span>🚀 Run in background when Windows starts (Autostart)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                                <input type="checkbox" id="chk-autostart-watcher" style="cursor: pointer; width: 15px; height: 15px;">
+                                <span>▶ Auto-start monitoring on system boot (no browser needed)</span>
+                            </label>
+                        </div>
+                    </section>
+                    
+                    <!-- Watcher Settings Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                        
+                        <!-- Watcher Channels -->
+                        <section class="glass-card">
+                            <h2>Channels to Monitor</h2>
+                            <p class="subtitle" style="margin-bottom: 15px;">Add the channel IDs you want the notifier to watch in real-time.</p>
+                            
+                            <div class="keyword-editor" style="flex-direction: column; align-items: stretch;">
+                                <textarea id="watcher-channel-input" placeholder="Paste one or more Channel IDs (one per line)..." autocomplete="off" rows="2" style="resize: vertical; min-height: 36px; font-family: inherit; font-size: inherit; padding: 8px 10px;"></textarea>
+                                <button type="button" id="btn-watcher-add-channel" class="btn btn-secondary btn-sm" style="align-self: flex-end; margin-top: 6px;">Add Channels</button>
+                            </div>
+                            
+                            <div class="keywords-list scrollable-list" id="watcher-channels-container">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </section>
+                        
+                        <!-- Watcher Keywords -->
+                        <section class="glass-card">
+                            <h2>Alert Trigger Words</h2>
+                            <p class="subtitle" style="margin-bottom: 15px;">Define keywords to trigger alerts, and words to ignore (excludes).</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px;">Trigger Keywords</label>
+                                <div class="keyword-editor">
+                                    <input type="text" id="watcher-keyword-input" placeholder="e.g. HIRING, NEED EDITOR..." autocomplete="off">
+                                    <button type="button" id="btn-watcher-add-keyword" class="btn btn-secondary btn-sm">Add</button>
+                                </div>
+                                <div class="keywords-list scrollable-list" id="watcher-keywords-container" style="margin-top: 10px;"></div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px;">Exclude Words (Ignore)</label>
+                                <div class="keyword-editor">
+                                    <input type="text" id="watcher-exclude-input" placeholder="e.g. unpaid, free..." autocomplete="off">
+                                    <button type="button" id="btn-watcher-add-exclude" class="btn btn-secondary btn-sm">Add</button>
+                                </div>
+                                <div class="keywords-list scrollable-list" id="watcher-excludes-container" style="margin-top: 10px;"></div>
+                            </div>
+                        </section>
+                        
+                    </div>
+                    
+                    <!-- Alert Logs -->
+                    <section class="glass-card" style="margin-top: 20px;">
+                        <h2>Session Notification Logs</h2>
+                        <p class="subtitle" style="margin-bottom: 15px;">Matches caught in real-time during this browser session are listed here.</p>
+                        
+                        <div id="watcher-logs-list" class="results-grid">
+                            <div class="no-results">
+                                <div class="icon">🔔</div>
+                                <p>No real-time matches detected yet. Start monitoring to receive alerts.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Discord Job Scanner. Built with premium design & respect for privacy.</p>
+        </footer>
+    </div>
+
+    <!-- Real-time Alert Modal Overlay -->
+    <div id="watcher-alert-modal" class="modal-overlay hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(8px); transition: all 0.3s ease;">
+        <div class="glass-card modal-content" style="max-width: 600px; width: 90%; padding: 25px; border-color: rgba(230, 126, 34, 0.4); box-shadow: 0 0 30px rgba(230, 126, 34, 0.2); animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); background: rgba(15, 18, 25, 0.95); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <div style="font-size: 2.2rem; animation: pulseGlow 1.5s infinite alternate;">🚨</div>
+                <div>
+                    <h2 style="margin: 0; font-size: 1.4rem; color: #e67e22; font-weight: 800; letter-spacing: 0.5px;">NEW JOB MATCH FOUND!</h2>
+                    <p style="margin: 2px 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">Real-time monitoring trigger</p>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 15px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                    <div>
+                        <span id="modal-server-name" style="font-weight: bold; color: var(--text-primary); font-size: 0.95rem;">🏢 Guild Server</span>
+                        <span id="modal-channel-name" style="color: var(--accent-blue); font-size: 0.9rem; margin-left: 6px;">#hiring</span>
+                    </div>
+                    <span id="modal-keyword-tag" style="background: rgba(230, 126, 34, 0.2); color: #e67e22; font-weight: bold; font-size: 0.75rem; padding: 4px 8px; border-radius: 10px; text-transform: uppercase;">Matched Keyword</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <div style="width: 28px; height: 28px; background: var(--accent-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; color: white;" id="modal-avatar-placeholder">U</div>
+                    <span id="modal-username" style="font-weight: bold; font-size: 0.95rem;">Username</span>
+                </div>
+                <p id="modal-message-content" style="margin: 0; font-size: 0.95rem; line-height: 1.45; color: var(--text-primary); white-space: pre-wrap; max-height: 180px; overflow-y: auto; padding-right: 5px;"></p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="modal-btn-dismiss" class="btn btn-secondary" style="padding: 10px 20px; font-weight: 600;">Dismiss</button>
+                <button type="button" id="modal-link-jump" class="btn btn-secondary" style="padding: 10px 20px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-color: var(--border-color); color: var(--text-primary); cursor: pointer;">Jump to Post</button>
+                <button type="button" id="modal-link-dm" class="btn btn-primary" style="padding: 10px 20px; font-weight: bold; text-decoration: none; display: flex; align-items: center; justify-content: center; background: #e67e22; border-color: #e67e22; box-shadow: 0 0 10px rgba(230, 126, 34, 0.4); cursor: pointer;">DM Poster</button>
+            </div>
+        </div>
+    </div>
+
+                            <script>
+        // DOM Elements - Scanner & Global
+        const tokenInput = document.getElementById('discord-token');
+        const toggleToken = document.getElementById('toggle-token-visibility');
+        const btnScan = document.getElementById('btn-scan');
+        const btnStop = document.getElementById('btn-stop');
+        const statusCard = document.getElementById('status-card');
+        const statusText = document.getElementById('status-text');
+        const errorCard = document.getElementById('error-card');
+        const errorDetail = document.getElementById('error-detail');
+        const progressFill = document.getElementById('progress-fill');
+        const progressDetail = document.getElementById('progress-detail');
+        const resultsList = document.getElementById('results-list');
+        const matchCount = document.getElementById('match-count');
+        
+        const tabCurrent = document.getElementById('tab-current');
+        const tabHistory = document.getElementById('tab-history');
+        const btnClearHistory = document.getElementById('btn-clear-history');
+        const currentScanView = document.getElementById('current-scan-view');
+        const historyView = document.getElementById('history-view');
+        const historyList = document.getElementById('history-list');
+        const historyCount = document.getElementById('history-count');
+        
+        const newKeywordInput = document.getElementById('new-keyword-input');
+        const btnAddKeyword = document.getElementById('btn-add-keyword');
+        const keywordsContainer = document.getElementById('keywords-container');
+
+        const excludeKeywordInput = document.getElementById('exclude-keyword-input');
+        const btnAddExclude = document.getElementById('btn-add-exclude');
+        const excludeContainer = document.getElementById('exclude-container');
+
+        const channelIdInput = document.getElementById('channel-id-input');
+        const btnAddChannel = document.getElementById('btn-add-channel');
+        const channelsContainer = document.getElementById('channels-container');
+        const hoursLimitInput = document.getElementById('hours-limit-input');
+
+        // DOM Elements - Ad Poster
+        const adContentTextarea = document.getElementById('ad-content');
+        const adForumTitleInput = document.getElementById('ad-forum-title');
+        const adImageFileInput = document.getElementById('ad-image-file');
+        const adImagePreviewDiv = document.getElementById('ad-image-preview');
+        const adForumCoverImageInput = document.getElementById('ad-forum-cover-image');
+        const adForumCoverPreviewDiv = document.getElementById('ad-forum-cover-preview');
+        const posterChannelInput = document.getElementById('poster-channel-input');
+        const btnPosterAddChannel = document.getElementById('btn-poster-add-channel');
+        const posterChannelsList = document.getElementById('poster-channels-list');
+
+        const posterAccountSelect = document.getElementById('poster-account-select');
+        const preferredBrowserSelect = document.getElementById('preferred-browser-select');
+        const btnAddAccount = document.getElementById('btn-add-account');
+        const btnDeleteAccount = document.getElementById('btn-delete-account');
+
+        const posterPresetSelect = document.getElementById('poster-preset-select');
+        const btnSavePreset = document.getElementById('btn-save-preset');
+        const btnDeletePreset = document.getElementById('btn-delete-preset');
+
+        const btnBatchPost = document.getElementById('btn-batch-post');
+        const batchPostDelayInput = document.getElementById('batch-post-delay');
+        const batchProgressCard = document.getElementById('batch-progress-card');
+        const batchProgressCount = document.getElementById('batch-progress-count');
+        const batchProgressFill = document.getElementById('batch-progress-fill');
+        const batchProgressDetail = document.getElementById('batch-progress-detail');
+
+        // DOM Elements - Real-Time Watcher
+        const navBtnScanner = document.getElementById('nav-btn-scanner');
+        const navBtnPoster = document.getElementById('nav-btn-poster');
+        const navBtnWatcher = document.getElementById('nav-btn-watcher');
+        const scannerViewModule = document.getElementById('scanner-view-module');
+        const posterViewModule = document.getElementById('poster-view-module');
+        const watcherViewModule = document.getElementById('watcher-view-module');
+
+        const btnWatcherToggle = document.getElementById('btn-watcher-toggle');
+        const watcherStatusCard = document.getElementById('watcher-status-card');
+        const watcherStatusText = document.getElementById('watcher-status-text');
+        const watcherChannelInput = document.getElementById('watcher-channel-input');
+        const btnWatcherAddChannel = document.getElementById('btn-watcher-add-channel');
+        const watcherChannelsContainer = document.getElementById('watcher-channels-container');
+
+        const watcherKeywordInput = document.getElementById('watcher-keyword-input');
+        const btnWatcherAddKeyword = document.getElementById('btn-watcher-add-keyword');
+        const watcherKeywordsContainer = document.getElementById('watcher-keywords-container');
+
+        const watcherExcludeInput = document.getElementById('watcher-exclude-input');
+        const btnWatcherAddExclude = document.getElementById('btn-watcher-add-exclude');
+        const watcherExcludesContainer = document.getElementById('watcher-excludes-container');
+        const watcherLogsList = document.getElementById('watcher-logs-list');
+
+        const chkAutostartWindows = document.getElementById('chk-autostart-windows');
+        const chkAutostartWatcher = document.getElementById('chk-autostart-watcher');
+
+        // DOM Elements - Real-Time Watcher Alert Modal
+        const watcherAlertModal = document.getElementById('watcher-alert-modal');
+        const modalServerName = document.getElementById('modal-server-name');
+        const modalChannelName = document.getElementById('modal-channel-name');
+        const modalKeywordTag = document.getElementById('modal-keyword-tag');
+        const modalUsername = document.getElementById('modal-username');
+        const modalAvatarPlaceholder = document.getElementById('modal-avatar-placeholder');
+        const modalMessageContent = document.getElementById('modal-message-content');
+        const modalBtnDismiss = document.getElementById('modal-btn-dismiss');
+        const modalLinkJump = document.getElementById('modal-link-jump');
+        const modalLinkDm = document.getElementById('modal-link-dm');
+
+        // Global State Variables
+        let statusInterval = null;
+        let keywords = [];
+        let excludes = [];
+        let channelIds = [];
+        
+        let accounts = [];
+        let currentAccountId = null;
+        let accountFiles = {}; // Dictionary: { accountId: [File, File...] }
+        let forumCoverFiles = {}; // Dictionary: { accountId: [File] }
+        let channelFiles = {}; // Dictionary: { "accountId_channelId": [File, File...] }
+        let channelCoverFiles = {}; // Dictionary: { "accountId_channelId": [File] }
+        let presets = [];
+        let activeCardIndex = null;
+
+        // Watcher State
+        let watcherChannels = [];
+        let watcherKeywords = [];
+        let watcherExcludes = [];
+        let watcherActive = false;
+        let watcherPollInterval = null;
+        let sessionAlerts = [];
+
+        function getActiveAccount() {
+            return accounts.find(a => a.id === currentAccountId);
+        }
+
+        let persistTimeout = null;
+        function saveAccounts() {
+            localStorage.setItem('discord_accounts_shared', JSON.stringify(accounts));
+            if (persistTimeout) clearTimeout(persistTimeout);
+            persistTimeout = setTimeout(persistStorageToBackend, 800);
+        }
+
+        window.openExternalLink = async function(url) {
+            const browser = localStorage.getItem('preferred_browser') || 'default';
+            try {
+                await fetch('/api/open_link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, browser: browser })
+                });
+            } catch(e) {
+                console.error("Failed to open external link:", e);
+                window.open(url, '_blank');
+            }
+        };
+
+        async function persistStorageToBackend() {
+            try {
+                const payload = {
+                    accounts: accounts,
+                    presets: presets
+                };
+                await fetch('/api/storage/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch(e) {
+                console.error("Failed to backup configurations to server disk:", e);
+            }
+        }
+
+        async function syncStorageFromBackend() {
+            try {
+                const res = await fetch('/api/storage/load');
+                const result = await res.json();
+                if (result.status === 'success' && result.data) {
+                    const serverAccounts = result.data.accounts || [];
+                    const serverPresets = result.data.presets || [];
+                    
+                    if (serverAccounts.length > 0) {
+                        accounts = serverAccounts;
+                        localStorage.setItem('discord_accounts_shared', JSON.stringify(accounts));
+                    }
+                    if (serverPresets.length > 0) {
+                        presets = serverPresets;
+                        localStorage.setItem('ad_poster_presets', JSON.stringify(presets));
+                    }
+                    
+                    currentAccountId = localStorage.getItem('discord_accounts_active_id') || accounts[0].id;
+                    if (!accounts.some(a => a.id === currentAccountId)) {
+                        currentAccountId = accounts[0].id;
+                    }
+                    populateAccountsSelect();
+                    loadActiveAccountState();
+                    populatePresetsSelect();
+                }
+            } catch(e) {
+                console.error("Failed to sync configuration from server disk:", e);
+            }
+        }
+
+        // Initialize Accounts (With seamless migration of legacy standalone settings)
+        function initAccounts() {
+            try {
+                accounts = JSON.parse(localStorage.getItem('discord_accounts_shared')) || [];
+            } catch(e) {
+                console.error("Error loading accounts list:", e);
+                accounts = [];
+            }
+
+            if (accounts.length === 0) {
+                let oldToken = localStorage.getItem('discord_token') || '';
+                
+                let oldKeywords = [];
+                try { oldKeywords = JSON.parse(localStorage.getItem('discord_keywords')); } catch(e) {}
+                if (!oldKeywords || oldKeywords.length === 0) {
+                    oldKeywords = [
+                        "LOOKING FOR EDITOR", "HIRING EDITOR", "NEED EDITOR", 
+                        "LOOKING FOR VIDEO EDITOR", "HIRING VIDEO EDITOR", "NEED VIDEO EDITOR", 
+                        "NEED THUMBNAIL", "LOOKING FOR THUMBNAIL", "HIRING THUMBNAIL"
+                    ];
+                }
+                
+                let oldExcludes = [];
+                try { oldExcludes = JSON.parse(localStorage.getItem('discord_excludes')); } catch(e) {}
+                if (!oldExcludes || oldExcludes.length === 0) {
+                    oldExcludes = ["FREE", "?"];
+                }
+                
+                let oldChannels = [];
+                try { oldChannels = JSON.parse(localStorage.getItem('discord_channels')); } catch(e) {}
+                if (!oldChannels) {
+                    oldChannels = [
+                        "1083138632438779935", "1232644274210738237", "1025503726120742923",
+                        "1458783716343152661", "1277863700174344233", "1106301641935831122",
+                        "1143590719517372588", "1037997811037376563", "1247245136505733246",
+                        "1185071240835244033", "1092607635829817364", "1366077594054955059",
+                        "1258324838662148170", "1202121671654518834", "531623271800766468",
+                        "1341396937663975455", "1502657608430129182", "1369804000345587752"
+                    ];
+                }
+
+                let oldDraftContent = localStorage.getItem('ad_draft_content') || '';
+                let oldDraftForumTitle = localStorage.getItem('ad_draft_forum_title') || '';
+                
+                let oldPosterChannels = [];
+                try { oldPosterChannels = JSON.parse(localStorage.getItem('ad_poster_channels')) || []; } catch(e) {}
+
+                accounts = [
+                    {
+                        id: "default",
+                        name: "Main Account",
+                        token: oldToken,
+                        keywords: oldKeywords,
+                        exclude_keywords: oldExcludes,
+                        channel_ids: oldChannels,
+                        draft_content: oldDraftContent,
+                        draft_forum_title: oldDraftForumTitle,
+                        poster_channels: oldPosterChannels,
+                        watcher_channels: [],
+                        watcher_keywords: ["HIRING", "NEED EDITOR", "LOOKING FOR EDITOR"],
+                        watcher_excludes: ["unpaid", "free"],
+                        auto_start_watcher: false
+                    }
+                ];
+                localStorage.setItem('discord_accounts_shared', JSON.stringify(accounts));
+            }
+
+            currentAccountId = localStorage.getItem('discord_accounts_active_id') || accounts[0].id;
+            if (!accounts.some(a => a.id === currentAccountId)) {
+                currentAccountId = accounts[0].id;
+            }
+
+            populateAccountsSelect();
+            loadActiveAccountState();
+        }
+
+        function populateAccountsSelect() {
+            posterAccountSelect.innerHTML = accounts.map(a => `
+                <option value="${a.id}" ${a.id === currentAccountId ? 'selected' : ''}>${escapeHtml(a.name)}</option>
+            `).join('');
+        }
+
+        function loadActiveAccountState() {
+            const active = getActiveAccount();
+            if (!active) return;
+
+            keywords = active.keywords;
+            excludes = active.exclude_keywords;
+            channelIds = active.channel_ids;
+
+            // Load Watcher lists
+            watcherChannels = active.watcher_channels || [];
+            watcherKeywords = active.watcher_keywords || ["HIRING", "NEED EDITOR", "LOOKING FOR EDITOR"];
+            watcherExcludes = active.watcher_excludes || ["unpaid", "free"];
+
+            tokenInput.value = active.token || '';
+            localStorage.setItem('discord_token', active.token || '');
+
+            renderKeywords();
+            renderExcludes();
+            renderChannels();
+
+            // Watcher UI Render
+            renderWatcherChannels();
+            renderWatcherKeywords();
+            renderWatcherExcludes();
+
+            chkAutostartWatcher.checked = !!active.auto_start_watcher;
+
+            adContentTextarea.value = active.draft_content || '';
+            adForumTitleInput.value = active.draft_forum_title || '';
+
+            const files = accountFiles[active.id] || [];
+            updateFilesPreview(files);
+
+            const covers = forumCoverFiles[active.id] || [];
+            updateCoverPreview(covers);
+
+            const defaultPresetName = localStorage.getItem('default_preset_' + active.id);
+            if (defaultPresetName && presets.some(p => p.name === defaultPresetName)) {
+                posterPresetSelect.value = defaultPresetName;
+                loadPresetByName(defaultPresetName);
+            } else {
+                posterPresetSelect.value = '';
+                activePresetName = '';
+            }
+            
+            // Re-fetch backend status to match UI state
+            fetchBackendWatcherStatus();
+        }
+
+        async function fetchBackendWatcherStatus() {
+            try {
+                const res = await fetch('/api/watcher/status');
+                const data = await res.json();
+                if (data.status === 'success' && data.is_running) {
+                    watcherActive = true;
+                    btnWatcherToggle.textContent = "⏹ Stop Monitoring";
+                    btnWatcherToggle.style.background = "#ff5555";
+                    btnWatcherToggle.style.borderColor = "#ff5555";
+                    btnWatcherToggle.style.boxShadow = "0 0 10px rgba(255, 85, 85, 0.3)";
+                    watcherStatusCard.classList.remove('hidden');
+                    if (!watcherPollInterval) {
+                        watcherPollInterval = setInterval(pollWatcherAlerts, 2000);
+                    }
+                } else {
+                    stopWatcherClient();
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function saveActiveAccountTextFields() {
+            const active = getActiveAccount();
+            if (active) {
+                active.draft_content = adContentTextarea.value;
+                active.draft_forum_title = adForumTitleInput.value;
+                active.token = tokenInput.value.trim();
+                saveAccounts();
+            }
+        }
+
+        // Live input listeners to save text fields immediately
+        adContentTextarea.addEventListener('input', () => {
+            const active = getActiveAccount();
+            if (active) {
+                active.draft_content = adContentTextarea.value;
+                saveAccounts();
+            }
+        });
+
+        adForumTitleInput.addEventListener('input', () => {
+            const active = getActiveAccount();
+            if (active) {
+                active.draft_forum_title = adForumTitleInput.value;
+                saveAccounts();
+            }
+        });
+
+        tokenInput.addEventListener('input', () => {
+            const active = getActiveAccount();
+            if (active) {
+                active.token = tokenInput.value.trim();
+                saveAccounts();
+            }
+        });
+
+        // ==========================================
+        //             ACCOUNTS CONFIG
+        // ==========================================
+
+        posterAccountSelect.addEventListener('change', () => {
+            saveActiveAccountTextFields();
+            currentAccountId = posterAccountSelect.value;
+            localStorage.setItem('discord_accounts_active_id', currentAccountId);
+            loadActiveAccountState();
+        });
+
+        // Initialize preferred browser from localStorage and bind change event
+        preferredBrowserSelect.value = localStorage.getItem('preferred_browser') || 'default';
+        preferredBrowserSelect.addEventListener('change', () => {
+            localStorage.setItem('preferred_browser', preferredBrowserSelect.value);
+        });
+
+        // Initialize hours limit from localStorage and bind change event
+        hoursLimitInput.value = localStorage.getItem('hours_limit') || '24';
+        hoursLimitInput.addEventListener('change', () => {
+            localStorage.setItem('hours_limit', hoursLimitInput.value);
+        });
+
+        btnAddAccount.addEventListener('click', () => {
+            const name = prompt("Enter a label/name for this account (e.g. Backup Account):");
+            if (!name) return;
+
+            const token = prompt("Enter the Discord User Token for this account:");
+            if (!token) return;
+
+            const newId = "ac_" + Date.now().toString();
+            accounts.push({
+                id: newId,
+                name: name,
+                token: token.trim(),
+                keywords: [
+                    "LOOKING FOR EDITOR", "HIRING EDITOR", "NEED EDITOR", 
+                    "LOOKING FOR VIDEO EDITOR", "HIRING VIDEO EDITOR", "NEED VIDEO EDITOR", 
+                    "NEED THUMBNAIL", "LOOKING FOR THUMBNAIL", "HIRING THUMBNAIL"
+                ],
+                exclude_keywords: ["FREE", "?"],
+                channel_ids: [
+                    "1083138632438779935", "1232644274210738237", "1025503726120742923",
+                    "1458783716343152661", "1277863700174344233", "1106301641935831122",
+                    "1143590719517372588", "1037997811037376563", "1247245136505733246",
+                    "1185071240835244033", "1092607635829817364", "1366077594054955059",
+                    "1258324838662148170", "1202121671654518834", "531623271800766468",
+                    "1341396937663975455", "1502657608430129182", "1369804000345587752"
+                ],
+                draft_content: "",
+                draft_forum_title: "",
+                poster_channels: [],
+                watcher_channels: [],
+                watcher_keywords: ["HIRING", "NEED EDITOR", "LOOKING FOR EDITOR"],
+                watcher_excludes: ["unpaid", "free"],
+                auto_start_watcher: false
+            });
+
+            saveAccounts();
+            currentAccountId = newId;
+            localStorage.setItem('discord_accounts_active_id', currentAccountId);
+            
+            populateAccountsSelect();
+            loadActiveAccountState();
+        });
+
+        btnDeleteAccount.addEventListener('click', () => {
+            if (accounts.length <= 1) {
+                alert("You must have at least one account. You cannot delete the last account.");
+                return;
+            }
+
+            const active = getActiveAccount();
+            if (confirm(`Are you sure you want to delete the account "${active.name}"?`)) {
+                delete accountFiles[active.id];
+                accounts = accounts.filter(a => a.id !== active.id);
+                saveAccounts();
+
+                currentAccountId = accounts[0].id;
+                localStorage.setItem('discord_accounts_active_id', currentAccountId);
+
+                populateAccountsSelect();
+                loadActiveAccountState();
+            }
+        });
+
+        // ==========================================
+        //             SCANNER TAB SECTION
+        // ==========================================
+
+        function renderKeywords() {
+            keywordsContainer.innerHTML = keywords.map((kw, index) => `
+                <div class="keyword-tag-wrapper">
+                    <label class="keyword-tag">
+                        <input type="checkbox" value="${escapeHtml(kw)}" checked> 
+                        <span>${escapeHtml(kw)}</span>
+                    </label>
+                    <button type="button" class="btn-delete-keyword" onclick="deleteKeyword(${index})">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function renderExcludes() {
+            excludeContainer.innerHTML = excludes.map((ex, index) => `
+                <div class="keyword-tag-wrapper">
+                    <label class="keyword-tag tag-exclude">
+                        <span>${escapeHtml(ex)}</span>
+                    </label>
+                    <button type="button" class="btn-delete-keyword" onclick="deleteExclude(${index})">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function renderChannels() {
+            channelsContainer.innerHTML = channelIds.map((ch, index) => `
+                <div class="keyword-tag-wrapper">
+                    <label class="keyword-tag tag-channel">
+                        <span>📺 ${escapeHtml(ch)}</span>
+                    </label>
+                    <button type="button" class="btn-delete-keyword" onclick="deleteChannel(${index})">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        window.deleteKeyword = function(index) {
+            keywords.splice(index, 1);
+            saveAccounts();
+            renderKeywords();
+        };
+
+        window.deleteExclude = function(index) {
+            excludes.splice(index, 1);
+            saveAccounts();
+            renderExcludes();
+        };
+
+        window.deleteChannel = function(index) {
+            channelIds.splice(index, 1);
+            saveAccounts();
+            renderChannels();
+        };
+
+        btnAddKeyword.addEventListener('click', () => {
+            const val = newKeywordInput.value.trim();
+            if (val && !keywords.includes(val)) {
+                keywords.push(val);
+                saveAccounts();
+                renderKeywords();
+                newKeywordInput.value = '';
+            }
+        });
+
+        btnAddExclude.addEventListener('click', () => {
+            const val = excludeKeywordInput.value.trim();
+            if (val && !excludes.includes(val)) {
+                excludes.push(val);
+                saveAccounts();
+                renderExcludes();
+                excludeKeywordInput.value = '';
+            }
+        });
+
+        btnAddChannel.addEventListener('click', () => {
+            const raw = channelIdInput.value.trim();
+            if (!raw) return;
+            // Split by newlines, commas, or spaces and add all valid IDs
+            const ids = raw.split(/[\n\r,\s]+/).map(s => s.trim()).filter(s => s && /^\d+$/.test(s));
+            let added = 0;
+            ids.forEach(id => {
+                if (!channelIds.includes(id)) {
+                    channelIds.push(id);
+                    added++;
+                }
+            });
+            if (added > 0) {
+                saveAccounts();
+                renderChannels();
+            }
+            channelIdInput.value = '';
+        });
+
+        newKeywordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnAddKeyword.click();
+            }
+        });
+
+        excludeKeywordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnAddExclude.click();
+            }
+        });
+
+        // Auto-add channels when pasting multiple lines
+        channelIdInput.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const raw = channelIdInput.value.trim();
+                if (raw.includes('\n')) {
+                    btnAddChannel.click();
+                }
+            }, 100);
+        });
+
+        toggleToken.addEventListener('click', () => {
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                toggleToken.textContent = '🙈';
+            } else {
+                tokenInput.type = 'password';
+                toggleToken.textContent = '👁️';
+            }
+        });
+
+        // Trigger Scan
+        btnScan.addEventListener('click', async () => {
+            errorCard.classList.add('hidden');
+            const token = tokenInput.value.trim();
+            if (!token) {
+                alert('Please enter your Discord User Token.');
+                return;
+            }
+
+            saveActiveAccountTextFields();
+
+            const selectedKeywords = Array.from(document.querySelectorAll('#keywords-container input:checked'))
+                .map(cb => cb.value);
+
+            if (selectedKeywords.length === 0) {
+                alert('Please select at least one keyword to scan.');
+                return;
+            }
+
+            try {
+                btnScan.disabled = true;
+                btnStop.disabled = false;
+                btnStop.classList.remove('hidden');
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        token, 
+                        keywords: selectedKeywords,
+                        exclude_keywords: excludes,
+                        channel_ids: channelIds,
+                        hours_limit: parseInt(hoursLimitInput.value) || 24
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    statusCard.classList.remove('hidden');
+                    startPollingStatus();
+                } else {
+                    alert(data.message || 'Failed to start scan.');
+                    btnScan.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error connecting to the scanner backend.');
+                btnScan.disabled = false;
+            }
+        });
+
+        // Trigger Stop Scan
+        btnStop.addEventListener('click', async () => {
+            try {
+                btnStop.disabled = true;
+                const response = await fetch('/api/stop', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.status !== 'success') {
+                    alert(data.message || 'Failed to stop scan.');
+                    btnStop.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error stopping scan.');
+                btnStop.disabled = false;
+            }
+        });
+
+        function startPollingStatus() {
+            if (statusInterval) clearInterval(statusInterval);
+            
+            statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    
+                    if (data.is_running) {
+                        statusCard.classList.remove('hidden');
+                        statusText.textContent = data.cancel_requested ? "Stopping scan..." : "Scanning in progress...";
+                        progressDetail.textContent = data.progress || "Scanning servers...";
+                        
+                        if (data.total_servers > 0) {
+                            const pct = Math.round((data.current_server / data.total_servers) * 100);
+                            progressFill.style.width = `${pct}%`;
+                        } else {
+                            progressFill.style.width = '0%';
+                        }
+                    } else {
+                        clearInterval(statusInterval);
+                        statusCard.classList.add('hidden');
+                        btnScan.disabled = false;
+                        btnStop.disabled = true;
+                        btnStop.classList.add('hidden');
+                        if (data.error) {
+                            errorCard.classList.remove('hidden');
+                            errorDetail.textContent = data.error;
+                        } else {
+                            errorCard.classList.add('hidden');
+                        }
+                        renderMatches(data.results || []);
+                    }
+                } catch (err) {
+                    console.error("Error polling scan status:", err);
+                }
+            }, 1000);
+        }
+
+        async function checkScannerStatusOnLoad() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                if (data.is_running) {
+                    statusCard.classList.remove('hidden');
+                    startPollingStatus();
+                } else {
+                    if (data.error) {
+                        errorCard.classList.remove('hidden');
+                        errorDetail.textContent = data.error;
+                    } else {
+                        errorCard.classList.add('hidden');
+                    }
+                    renderMatches(data.results || []);
+                }
+            } catch(e) {
+                console.error("Error loading initial scan status:", e);
+            }
+        }
+
+        function renderMatches(results) {
+            matchCount.textContent = results.length;
+            if (results.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="no-results">
+                        <div class="icon">🔍</div>
+                        <p>No matches found in this scan. Try checking your settings or servers.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            resultsList.innerHTML = results.map(item => {
+                const msgLink = `https://discord.com/channels/${item.server_id}/${item.channel_id}/${item.message_id}`;
+                const dmLink = `https://discord.com/users/${item.author_id}`;
+                
+                return `
+                    <div class="glass-card result-card" id="msg-${item.message_id}">
+                        <div class="result-header">
+                            <div class="user-info">
+                                <div class="avatar-placeholder">${item.username.charAt(0).toUpperCase()}</div>
+                                <div class="user-details">
+                                    <span class="username">${escapeHtml(item.username)}</span>
+                                    <span class="timestamp">${new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                            </div>
+                            <span class="keyword-tag-pill">${escapeHtml(item.keyword)}</span>
+                        </div>
+                        <div class="server-info-row">
+                            <span class="server-name">🏢 ${escapeHtml(item.server_name)}</span>
+                            <span class="channel-name"># ${escapeHtml(item.channel_name)}</span>
+                        </div>
+                        <p class="message-content">${escapeHtml(item.content)}</p>
+                        <div class="result-actions">
+                            <a href="javascript:void(0)" onclick="openExternalLink('${msgLink}')" class="btn btn-secondary btn-sm">Jump to Message</a>
+                            <a href="javascript:void(0)" onclick="openExternalLink('${dmLink}')" class="btn btn-primary btn-sm">Direct Message</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                renderHistory(data);
+            } catch (err) {
+                console.error("Error fetching history:", err);
+            }
+        }
+
+        async function updateHistoryCount() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                historyCount.textContent = data.length;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderHistory(history) {
+            historyCount.textContent = history.length;
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="no-results">
+                        <div class="icon">📦</div>
+                        <p>No historical matches saved yet. Completed scans will automatically display here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => {
+                const msgLink = `https://discord.com/channels/${item.server_id}/${item.channel_id}/${item.message_id}`;
+                const dmLink = `https://discord.com/users/${item.author_id}`;
+                const scanDate = item.scanned_at ? new Date(item.scanned_at).toLocaleString() : 'Unknown';
+                
+                return `
+                    <div class="glass-card result-card">
+                        <div class="result-header">
+                            <div class="user-info">
+                                <div class="avatar-placeholder">${item.username.charAt(0).toUpperCase()}</div>
+                                <div class="user-details">
+                                    <span class="username">${escapeHtml(item.username)}</span>
+                                    <span class="timestamp">Sent: ${new Date(item.timestamp).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <span class="keyword-tag-pill">${escapeHtml(item.keyword)}</span>
+                        </div>
+                        <div class="server-info-row">
+                            <span class="server-name">🏢 ${escapeHtml(item.server_name)}</span>
+                            <span class="channel-name"># ${escapeHtml(item.channel_name)}</span>
+                            <span class="help-text" style="margin-left: auto; font-size: 0.8rem;">Saved: ${scanDate}</span>
+                        </div>
+                        <p class="message-content">${escapeHtml(item.content)}</p>
+                        <div class="result-actions">
+                            <a href="javascript:void(0)" onclick="openExternalLink('${msgLink}')" class="btn btn-secondary btn-sm">Jump to Message</a>
+                            <a href="javascript:void(0)" onclick="openExternalLink('${dmLink}')" class="btn btn-primary btn-sm">Direct Message</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        tabCurrent.addEventListener('click', () => {
+            tabCurrent.classList.add('active');
+            tabHistory.classList.remove('active');
+            currentScanView.classList.remove('hidden');
+            historyView.classList.add('hidden');
+            btnClearHistory.classList.add('hidden');
+        });
+
+        tabHistory.addEventListener('click', () => {
+            tabHistory.classList.add('active');
+            tabCurrent.classList.remove('active');
+            historyView.classList.remove('hidden');
+            currentScanView.classList.add('hidden');
+            btnClearHistory.classList.remove('hidden');
+            fetchHistory();
+        });
+
+        btnClearHistory.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to permanently clear all saved match history?")) {
+                try {
+                    const res = await fetch('/api/history/clear', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        fetchHistory();
+                    } else {
+                        alert(data.message || "Failed to clear history.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Error clearing history.");
+                }
+            }
+        });
+
+        const btnShutdownServer = document.getElementById('btn-shutdown-server');
+        btnShutdownServer.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to shut down the backend scanner server? (You will need to double-click the Run_Job_Scanner batch file to start it again)")) {
+                try {
+                    const res = await fetch('/api/shutdown', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert("Server shut down successfully. You can now close this tab.");
+                        window.close();
+                    } else {
+                        alert(data.message || "Failed to shut down server.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Server has been shut down.");
+                }
+            }
+        });
+
+        // ==========================================
+        //             AD POSTER TAB SECTION
+        // ==========================================
+
+        // File upload change preview
+        adImageFileInput.addEventListener('change', () => {
+            const active = getActiveAccount();
+            if (!active) return;
+
+            const fileList = adImageFileInput.files;
+            const filesArray = Array.from(fileList);
+
+            accountFiles[active.id] = filesArray;
+            updateFilesPreview(filesArray);
+        });
+
+        function updateFilesPreview(filesArray) {
+            if (filesArray && filesArray.length > 0) {
+                adImagePreviewDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">Attached ${filesArray.length} file(s):</div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        ${filesArray.map((f, i) => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+                                <span>${i + 1}. ${escapeHtml(f.name || f)} (${f.size ? (f.size / 1024).toFixed(1) + ' KB' : 'Saved Preset'})</span>
+                                <button type="button" onclick="removeGlobalFile(${i})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 0 4px; font-weight: bold; font-size: 0.9rem;">&times;</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                adImagePreviewDiv.classList.remove('hidden');
+            } else {
+                adImagePreviewDiv.innerHTML = '';
+                adImagePreviewDiv.classList.add('hidden');
+                adImageFileInput.value = '';
+            }
+        }
+
+        window.removeGlobalFile = function(index) {
+            const active = getActiveAccount();
+            if (!active) return;
+            
+            if (activePresetName && (!accountFiles[active.id] || accountFiles[active.id].length === 0)) {
+                const preset = presets.find(p => p.name === activePresetName);
+                if (preset && preset.global_filenames) {
+                    preset.global_filenames.splice(index, 1);
+                    updatePresetFilesPreview(preset);
+                }
+            } else {
+                const files = accountFiles[active.id] || [];
+                files.splice(index, 1);
+                accountFiles[active.id] = files;
+                updateFilesPreview(files);
+            }
+        };
+
+        adForumCoverImageInput.addEventListener('change', () => {
+            const active = getActiveAccount();
+            if (!active) return;
+
+            const fileList = adForumCoverImageInput.files;
+            const filesArray = Array.from(fileList);
+
+            forumCoverFiles[active.id] = filesArray;
+            updateCoverPreview(filesArray);
+        });
+
+        function updateCoverPreview(filesArray) {
+            const uploadWrapper = document.getElementById('ad-forum-cover-upload-wrapper');
+            if (filesArray && filesArray.length > 0) {
+                const f = filesArray[0];
+                adForumCoverPreviewDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                        <span>Attached Cover: ${escapeHtml(f.name || f)} (${f.size ? (f.size / 1024).toFixed(1) + ' KB' : 'Saved Preset'})</span>
+                        <button type="button" onclick="removeGlobalCover()" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 0 4px; font-weight: bold; font-size: 0.9rem;">&times;</button>
+                    </div>
+                `;
+                adForumCoverPreviewDiv.classList.remove('hidden');
+                if (uploadWrapper) uploadWrapper.style.display = 'none';
+            } else {
+                adForumCoverPreviewDiv.innerHTML = '';
+                adForumCoverPreviewDiv.classList.add('hidden');
+                adForumCoverImageInput.value = '';
+                if (uploadWrapper) uploadWrapper.style.display = 'block';
+            }
+        }
+
+        window.removeGlobalCover = function() {
+            const active = getActiveAccount();
+            if (!active) return;
+            
+            if (activePresetName && (!forumCoverFiles[active.id] || forumCoverFiles[active.id].length === 0)) {
+                const preset = presets.find(p => p.name === activePresetName);
+                if (preset) {
+                    preset.cover_filenames = [];
+                    updatePresetFilesPreview(preset);
+                }
+            } else {
+                forumCoverFiles[active.id] = [];
+                updateCoverPreview([]);
+            }
+        };
+
+        // Presets Manager
+        let activePresetName = "";
+
+        async function initPresets() {
+            try {
+                const res = await fetch('/api/presets');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    presets = data.presets || [];
+                }
+            } catch(e) {
+                console.error("Error reading presets:", e);
+                presets = [];
+            }
+            populatePresetsSelect();
+            
+            // Check default preset for active account on startup
+            const active = getActiveAccount();
+            if (active) {
+                const defaultName = localStorage.getItem('default_preset_' + active.id);
+                if (defaultName && presets.some(p => p.name === defaultName)) {
+                    posterPresetSelect.value = defaultName;
+                    loadPresetByName(defaultName);
+                }
+            }
+        }
+
+        function populatePresetsSelect() {
+            posterPresetSelect.innerHTML = `
+                <option value="">-- Load Preset --</option>
+                ${presets.map(p => `
+                    <option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>
+                `).join('')}
+            `;
+        }
+
+        function loadPresetByName(name) {
+            const preset = presets.find(p => p.name === name);
+            const active = getActiveAccount();
+            if (preset && active) {
+                activePresetName = name;
+                adContentTextarea.value = preset.draft_content || '';
+                adForumTitleInput.value = preset.draft_forum_title || '';
+                
+                active.poster_channels = JSON.parse(JSON.stringify(preset.poster_channels || []));
+                
+                localStorage.setItem('default_preset_' + active.id, name);
+                
+                accountFiles[active.id] = [];
+                forumCoverFiles[active.id] = [];
+                channelFiles = {};
+                channelCoverFiles = {};
+                
+                updatePresetFilesPreview(preset);
+                
+                saveActiveAccountTextFields();
+                renderPosterChannels();
+            }
+        }
+
+        function updatePresetFilesPreview(preset) {
+            updateFilesPreview(preset.global_filenames || []);
+            updateCoverPreview(preset.cover_filenames || []);
+        }
+
+        btnSavePreset.addEventListener('click', async () => {
+            const active = getActiveAccount();
+            if (!active) return;
+
+            const name = prompt("Enter a name to save this configuration preset:");
+            if (!name) return;
+
+            const existing = presets.find(p => p.name.toLowerCase() === name.toLowerCase());
+            if (existing) {
+                if (!confirm(`A preset named "${name}" already exists. Overwrite it?`)) return;
+            }
+
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("draft_content", adContentTextarea.value);
+            formData.append("draft_forum_title", adForumTitleInput.value);
+
+            let keepGlobal = [];
+            let keepCover = [];
+            let keepChannels = {};
+
+            const newGlobal = accountFiles[active.id] || [];
+            const newCover = forumCoverFiles[active.id] || [];
+
+            if (existing) {
+                if (newGlobal.length === 0) keepGlobal = existing.global_filenames || [];
+                if (newCover.length === 0) keepCover = existing.cover_filenames || [];
+            }
+
+            newGlobal.forEach(f => formData.append("global_files", f));
+            newCover.forEach(f => formData.append("cover_files", f));
+
+            const channelConfig = [];
+            (active.poster_channels || []).forEach(ch => {
+                const key = active.id + "_" + ch.id;
+                const newChFiles = channelFiles[key] || [];
+                const coverKey = active.id + "_cover_" + ch.id;
+                const newChCover = channelCoverFiles[coverKey] || [];
+
+                if (existing) {
+                    const oldCh = (existing.poster_channels || []).find(oc => oc.id === ch.id);
+                    if (oldCh) {
+                        if (newChFiles.length === 0) {
+                            keepChannels[ch.id] = oldCh.preset_filenames || [];
+                        }
+                    }
+                }
+
+                newChFiles.forEach(f => formData.append(`channel_files_${ch.id}`, f));
+                newChCover.forEach(f => formData.append(`channel_files_${ch.id}`, f)); // attach as regular file
+
+                channelConfig.push({
+                    id: ch.id,
+                    name: ch.name,
+                    guild_name: ch.guild_name,
+                    type: ch.type,
+                    post_mode: ch.post_mode,
+                    custom_content: ch.custom_content,
+                    custom_title: ch.custom_title,
+                    bump_text: ch.bump_text,
+                    last_posted_id: ch.last_posted_id,
+                    selected_tags: ch.selected_tags,
+                    available_tags: ch.available_tags,
+                    last_status: ch.last_status,
+                    has_custom_cover: newChCover.length > 0 || (existing && (existing.poster_channels || []).find(oc => oc.id === ch.id)?.has_custom_cover)
+                });
+            });
+
+            formData.append("poster_channels", JSON.stringify(channelConfig));
+            formData.append("keep_global_files", JSON.stringify(keepGlobal));
+            formData.append("keep_cover_files", JSON.stringify(keepCover));
+            formData.append("keep_channel_files", JSON.stringify(keepChannels));
+
+            try {
+                btnSavePreset.disabled = true;
+                btnSavePreset.textContent = "Saving...";
+                const res = await fetch("/api/presets/save", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status === "success") {
+                    alert(`Preset "${name}" saved successfully!`);
+                    localStorage.setItem('default_preset_' + active.id, name);
+                    await initPresets();
+                    posterPresetSelect.value = name;
+                    loadPresetByName(name);
+                } else {
+                    alert(data.message || "Failed to save preset.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error connecting to backend to save preset.");
+            } finally {
+                btnSavePreset.disabled = false;
+                btnSavePreset.textContent = "Save Preset";
+            }
+        });
+
+        posterPresetSelect.addEventListener('change', () => {
+            const name = posterPresetSelect.value;
+            if (name) {
+                loadPresetByName(name);
+            } else {
+                activePresetName = "";
+                adContentTextarea.value = "";
+                adForumTitleInput.value = "";
+                updateFilesPreview([]);
+                updateCoverPreview([]);
+                const active = getActiveAccount();
+                if (active) {
+                    localStorage.removeItem('default_preset_' + active.id);
+                }
+            }
+        });
+
+        btnDeletePreset.addEventListener('click', async () => {
+            const name = posterPresetSelect.value;
+            if (!name) {
+                alert("Please select a preset to delete first.");
+                return;
+            }
+
+            if (confirm(`Are you sure you want to permanently delete the preset "${name}"?`)) {
+                try {
+                    btnDeletePreset.disabled = true;
+                    const res = await fetch("/api/presets/delete", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name })
+                    });
+                    const data = await res.json();
+                    if (data.status === "success") {
+                        alert(`Preset "${name}" deleted successfully.`);
+                        const active = getActiveAccount();
+                        if (active && localStorage.getItem('default_preset_' + active.id) === name) {
+                            localStorage.removeItem('default_preset_' + active.id);
+                        }
+                        await initPresets();
+                        posterPresetSelect.value = "";
+                        activePresetName = "";
+                        adContentTextarea.value = "";
+                        adForumTitleInput.value = "";
+                        updateFilesPreview([]);
+                        updateCoverPreview([]);
+                    } else {
+                        alert(data.message || "Failed to delete preset.");
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert("Error deleting preset.");
+                } finally {
+                    btnDeletePreset.disabled = false;
+                }
+            }
+        });
+
+        // Target posting channels management
+        btnPosterAddChannel.addEventListener('click', async () => {
+            const active = getActiveAccount();
+            if (!active) return;
+
+            const channelId = posterChannelInput.value.trim();
+            if (!channelId) {
+                alert("Please enter a valid Channel ID.");
+                return;
+            }
+
+            const token = active.token || tokenInput.value.trim();
+            if (!token) {
+                alert("Please verify your Discord token is configured for this account.");
+                return;
+            }
+
+            if (!active.poster_channels) active.poster_channels = [];
+            if (active.poster_channels.some(ch => ch.id === channelId)) {
+                alert("This channel is already added.");
+                return;
+            }
+
+            btnPosterAddChannel.disabled = true;
+            btnPosterAddChannel.textContent = "Resolving...";
+
+            try {
+                const res = await fetch(`/api/channel/${channelId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': token
+                    }
+                });
+                
+                const data = await res.json();
+                if (data.status === 'success') {
+                    active.poster_channels.push({
+                        id: data.id,
+                        name: data.name,
+                        type: data.type,
+                        guild_name: data.guild_name,
+                        available_tags: data.available_tags || [],
+                        selected_tags: []
+                    });
+                    saveAccounts();
+                    renderPosterChannels();
+                    posterChannelInput.value = '';
+                } else {
+                    alert(data.message || "Failed to resolve Channel ID.");
+                }
+            } catch(err) {
+                console.error(err);
+                alert("Error connecting to backend channel resolver.");
+            } finally {
+                btnPosterAddChannel.disabled = false;
+                btnPosterAddChannel.textContent = "Add Channel";
+            }
+        });
+
+        posterChannelInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnPosterAddChannel.click();
+            }
+        });
+
+        window.editChannelNames = function(index) {
+            const active = getActiveAccount();
+            if (!active || !active.poster_channels) return;
+            const ch = active.poster_channels[index];
+            
+            const newChName = prompt("Enter custom Channel Name (e.g. #general):", ch.name);
+            if (newChName === null) return;
+            
+            const newGuildName = prompt("Enter custom Server Name:", ch.guild_name);
+            if (newGuildName === null) return;
+            
+            ch.name = newChName.trim() || ch.name;
+            ch.guild_name = newGuildName.trim() || ch.guild_name;
+            
+            saveAccounts();
+            renderPosterChannels();
+        };
+
+        window.deletePosterChannel = function(index) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels.splice(index, 1);
+                saveAccounts();
+                renderPosterChannels();
+            }
+        };
+
+        window.togglePosterTag = function(channelIndex, tagId) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[channelIndex];
+                const tagIdx = ch.selected_tags.indexOf(tagId);
+                if (tagIdx > -1) {
+                    ch.selected_tags.splice(tagIdx, 1);
+                } else {
+                    ch.selected_tags.push(tagId);
+                }
+                saveAccounts();
+            }
+        };
+
+        window.toggleChannelCollapse = function(index) {
+            activeCardIndex = (activeCardIndex === index) ? null : index;
+            renderPosterChannels();
+        };
+
+        window.setPostMode = function(index, mode) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels[index].post_mode = mode;
+                saveAccounts();
+                renderPosterChannels();
+            }
+        };
+
+        window.updateChannelCustomTitle = function(index, value) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels[index].custom_title = value;
+                saveAccounts();
+            }
+        };
+
+        window.updateChannelCustomContent = function(index, value) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels[index].custom_content = value;
+                saveAccounts();
+            }
+        };
+
+        window.updateChannelBumpText = function(index, value) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels[index].bump_text = value;
+                saveAccounts();
+            }
+        };
+
+        window.updateChannelCustomBumpId = function(index, value) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                active.poster_channels[index].custom_bump_id = value.trim();
+                saveAccounts();
+                
+                // Redraw target indicator instantly
+                const card = document.querySelector(`.poster-channel-card[data-index="${index}"]`);
+                const targetTextDiv = card ? card.querySelector(`.help-text`) : null;
+                if (targetTextDiv) {
+                    const cleanVal = value.trim();
+                    if (cleanVal) {
+                        targetTextDiv.style.color = '#2ecc71';
+                        targetTextDiv.textContent = `✓ Target ID Linked: ${cleanVal}`;
+                    } else if (active.poster_channels[index].last_posted_id) {
+                        targetTextDiv.style.color = '#2ecc71';
+                        targetTextDiv.textContent = `✓ Target ID Linked: ${active.poster_channels[index].last_posted_id}`;
+                    } else {
+                        targetTextDiv.style.color = '#e67e22';
+                        targetTextDiv.textContent = `⚠ No target ID found. Will auto-locate your last post/thread in the channel.`;
+                    }
+                }
+            }
+        };
+
+        window.handleChannelFileChange = function(index, input) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[index];
+                const key = active.id + "_" + ch.id;
+                channelFiles[key] = Array.from(input.files);
+                renderPosterChannels();
+            }
+        };
+
+        window.handleChannelCoverChange = function(index, input) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[index];
+                const key = active.id + "_cover_" + ch.id;
+                channelCoverFiles[key] = Array.from(input.files);
+                renderPosterChannels();
+            }
+        };
+
+        window.removeChannelFile = function(chIdx, fileIdx) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[chIdx];
+                const key = active.id + "_" + ch.id;
+                const files = channelFiles[key] || [];
+                files.splice(fileIdx, 1);
+                channelFiles[key] = files;
+                renderPosterChannels();
+            }
+        };
+
+        window.removeChannelPresetFile = function(chIdx, fileIdx) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[chIdx];
+                if (ch.preset_filenames) {
+                    ch.preset_filenames.splice(fileIdx, 1);
+                    renderPosterChannels();
+                }
+            }
+        };
+
+        window.removeChannelCover = function(chIdx) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[chIdx];
+                const key = active.id + "_cover_" + ch.id;
+                channelCoverFiles[key] = [];
+                renderPosterChannels();
+            }
+        };
+
+        window.removeChannelPresetCover = function(chIdx) {
+            const active = getActiveAccount();
+            if (active && active.poster_channels) {
+                const ch = active.poster_channels[chIdx];
+                ch.has_custom_cover = false;
+                renderPosterChannels();
+            }
+        };
+
+        function renderPosterChannels() {
+            const active = getActiveAccount();
+            if (!active || !active.poster_channels || active.poster_channels.length === 0) {
+                posterChannelsList.innerHTML = `
+                    <div class="no-results" style="grid-column: 1 / -1; padding: 30px;">
+                        <div class="icon">📢</div>
+                        <p>No posting channels added yet. Enter a Channel ID to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            posterChannelsList.innerHTML = active.poster_channels.map((ch, chIdx) => {
+                const isForum = ch.type === 15;
+                const typeLabel = isForum ? "Forum" : "Text";
+                const typeClass = isForum ? "type-forum" : "type-text";
+                
+                // Initialize default properties if missing
+                if (!ch.post_mode) ch.post_mode = "global";
+                if (!ch.custom_content) ch.custom_content = "";
+                if (!ch.custom_title) ch.custom_title = "";
+                if (!ch.bump_text) ch.bump_text = "bump";
+                if (!ch.last_posted_id) ch.last_posted_id = "";
+                
+                const fileCacheKey = active.id + "_" + ch.id;
+                const files = channelFiles[fileCacheKey] || [];
+                const coverCacheKey = active.id + "_cover_" + ch.id;
+                const coverFiles = channelCoverFiles[coverCacheKey] || [];
+                
+                let statusStyle = "";
+                let statusContent = "";
+                let statusHiddenClass = "hidden";
+                if (ch.last_status) {
+                    statusHiddenClass = "";
+                    let bg = "", col = "", border = "";
+                    if (ch.last_status.type === 'success') {
+                        bg = 'rgba(46, 204, 113, 0.1)';
+                        col = '#2ecc71';
+                        border = '1px solid rgba(46, 204, 113, 0.3)';
+                    } else if (ch.last_status.type === 'failed') {
+                        bg = 'rgba(255, 85, 85, 0.1)';
+                        col = '#ff6b6b';
+                        border = '1px solid rgba(255, 85, 85, 0.3)';
+                    } else if (ch.last_status.type === 'processing') {
+                        bg = 'rgba(255, 255, 255, 0.05)';
+                        col = 'var(--text-secondary)';
+                        border = '1px solid var(--border-color)';
+                    }
+                    statusStyle = `background: ${bg}; color: ${col}; border: ${border};`;
+                    statusContent = ch.last_status.text;
+                }
+                
+                let forumSectionHTML = '';
+                if (isForum && ch.available_tags && ch.available_tags.length > 0) {
+                    forumSectionHTML = `
+                        <div class="forum-settings-panel" style="margin-top: 10px;">
+                            <label>Apply Tags:</label>
+                            <div class="forum-tag-checkboxes">
+                                ${ch.available_tags.map(tag => {
+                                    const checked = (ch.selected_tags || []).includes(tag.id) ? 'checked' : '';
+                                    const emoji = tag.emoji_name ? `${tag.emoji_name} ` : '';
+                                    return `
+                                        <label class="tag-checkbox-label">
+                                            <input type="checkbox" onchange="togglePosterTag(${chIdx}, '${tag.id}')" ${checked}>
+                                            <span>${emoji}${escapeHtml(tag.name)}</span>
+                                        </label>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const isExpanded = activeCardIndex === chIdx;
+                const cardClass = isExpanded ? "expanded" : "";
+                
+                let collapsiblePanelHTML = '';
+                if (isExpanded) {
+                    collapsiblePanelHTML = `
+                        <div class="channel-card-custom-panel">
+                            <label>Post Mode:</label>
+                            <div class="post-mode-selector">
+                                <button type="button" class="post-mode-btn ${ch.post_mode === 'global' ? 'active' : ''}" onclick="setPostMode(${chIdx}, 'global')">Global Draft</button>
+                                <button type="button" class="post-mode-btn ${ch.post_mode === 'custom' ? 'active' : ''}" onclick="setPostMode(${chIdx}, 'custom')">Custom Draft</button>
+                                <button type="button" class="post-mode-btn ${ch.post_mode === 'bump' ? 'active' : ''}" onclick="setPostMode(${chIdx}, 'bump')">Bump Post</button>
+                            </div>
+                            
+                            ${ch.post_mode === 'custom' ? `
+                                <div class="channel-custom-draft-box">
+                                    ${isForum ? `
+                                        <input type="text" placeholder="Custom Forum Title..." value="${escapeHtml(ch.custom_title)}" oninput="updateChannelCustomTitle(${chIdx}, this.value)">
+                                    ` : ''}
+                                    <textarea rows="3" placeholder="Custom message text..." oninput="updateChannelCustomContent(${chIdx}, this.value)">${escapeHtml(ch.custom_content)}</textarea>
+                                    
+                                    <div class="file-upload-wrapper" style="padding: 10px; font-size: 0.85rem;">
+                                        <span>📂 Attach Custom Images</span>
+                                        <input type="file" multiple onchange="handleChannelFileChange(${chIdx}, this)">
+                                    </div>
+                                    <div class="channel-file-upload-preview ${(files.length || (ch.preset_filenames && ch.preset_filenames.length > 0)) ? '' : 'hidden'}" style="margin-top: 8px;">
+                                        <div style="font-weight: bold; margin-bottom: 4px; font-size: 0.82rem;">Attached Custom Images:</div>
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            ${files.length ? files.map((f, i) => `
+                                                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">
+                                                    <span>${i + 1}. ${escapeHtml(f.name)}</span>
+                                                    <button type="button" onclick="removeChannelFile(${chIdx}, ${i})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold; font-size: 0.85rem;">&times;</button>
+                                                </div>
+                                            `).join('') : (ch.preset_filenames && ch.preset_filenames.length > 0 ? ch.preset_filenames.map((name, i) => `
+                                                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">
+                                                    <span>${i + 1}. [Saved] ${escapeHtml(name)}</span>
+                                                    <button type="button" onclick="removeChannelPresetFile(${chIdx}, ${i})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold; font-size: 0.85rem;">&times;</button>
+                                                </div>
+                                            `).join('') : '')}
+                                        </div>
+                                    </div>
+
+                                    <div class="file-upload-wrapper" style="padding: 10px; font-size: 0.85rem; margin-top: 8px; border-style: dotted; ${(coverFiles.length || ch.has_custom_cover) ? 'display: none;' : ''}">
+                                        <span>📔 Attach Custom Forum Cover</span>
+                                        <input type="file" onchange="handleChannelCoverChange(${chIdx}, this)">
+                                    </div>
+
+                                    <div class="channel-cover-upload-preview ${(coverFiles.length || ch.has_custom_cover) ? '' : 'hidden'}" style="margin-top: 8px;">
+                                        ${coverFiles.length ? `
+                                            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; width: 100%;">
+                                                <span>Cover: ${escapeHtml(coverFiles[0].name)}</span>
+                                                <button type="button" onclick="removeChannelCover(${chIdx})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold; font-size: 0.85rem;">&times;</button>
+                                            </div>
+                                        ` : (ch.has_custom_cover ? `
+                                            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; width: 100%;">
+                                                <span>Cover: [Saved in Preset]</span>
+                                                <button type="button" onclick="removeChannelPresetCover(${chIdx})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-weight: bold; font-size: 0.85rem;">&times;</button>
+                                            </div>
+                                        ` : '')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${ch.post_mode === 'bump' ? `
+                                <div class="channel-custom-draft-box">
+                                    <input type="text" placeholder="Bump message (e.g. bump)..." value="${escapeHtml(ch.bump_text || 'bump')}" oninput="updateChannelBumpText(${chIdx}, this.value)">
+                                    <input type="text" placeholder="Custom Thread / Message ID to Bump (Optional)..." value="${escapeHtml(ch.custom_bump_id || '')}" oninput="updateChannelCustomBumpId(${chIdx}, this.value)" style="margin-top: 8px;">
+                                    ${(ch.custom_bump_id || ch.last_posted_id) ? `
+                                        <div class="help-text" style="color: #2ecc71;">✓ Target ID Linked: ${ch.custom_bump_id || ch.last_posted_id}</div>
+                                    ` : `
+                                        <div class="help-text" style="color: #e67e22;">⚠ No target ID found. Will auto-locate your last post/thread in the channel.</div>
+                                    `}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                const actionButtonText = ch.post_mode === 'bump' ? "Bump Post" : "Publish Ad";
+
+                return `
+                    <div class="glass-card poster-channel-card ${cardClass}" data-index="${chIdx}">
+                        <div>
+                            <div class="channel-header">
+                                <div class="channel-title-group" style="max-width: 70%;">
+                                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                        <span class="channel-title" title="${escapeHtml(ch.name)}">📺 ${escapeHtml(ch.name)}</span>
+                                        <button type="button" onclick="editChannelNames(${chIdx})" style="background: none; border: none; cursor: pointer; padding: 2px; font-size: 0.82rem; opacity: 0.5; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="Rename Channel & Server">✏️</button>
+                                    </div>
+                                    <span class="channel-subtitle" title="${escapeHtml(ch.guild_name)}">${escapeHtml(ch.guild_name)}</span>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span class="poster-tag ${typeClass}">${typeLabel}</span>
+                                    <button type="button" class="btn-delete-keyword" onclick="deletePosterChannel(${chIdx})">&times;</button>
+                                </div>
+                            </div>
+                            ${forumSectionHTML}
+                            
+                            <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                                <button type="button" class="channel-card-toggle" onclick="toggleChannelCollapse(${chIdx})">
+                                    ${isExpanded ? '⚙ Hide Options ▲' : '⚙ Customize Options ▼'}
+                                </button>
+                                ${ch.post_mode !== 'global' ? `<span style="font-size: 0.8rem; font-weight: bold; color: var(--accent-blue); text-transform: uppercase;">Mode: ${ch.post_mode}</span>` : ''}
+                            </div>
+                            
+                            ${collapsiblePanelHTML}
+                            <div class="channel-post-status ${statusHiddenClass}" id="status-msg-${ch.id}" style="margin-top: 10px; font-size: 0.82rem; padding: 6px 10px; border-radius: var(--radius-sm); line-height: 1.35; ${statusStyle}">${statusContent}</div>
+                        </div>
+                        <div class="post-button-container">
+                            <button type="button" id="btn-post-ad-${ch.id}" onclick="publishAdToChannel(${chIdx})" class="btn btn-primary btn-sm btn-post-now">${actionButtonText}</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.publishAdToChannel = async function(channelIndex, isBatch = false) {
+            const active = getActiveAccount();
+            if (!active || !active.poster_channels) return false;
+
+            const ch = active.poster_channels[channelIndex];
+            const token = active.token || tokenInput.value.trim();
+            if (!token) {
+                if (!isBatch) alert("Authorization Token is missing for this account!");
+                return false;
+            }
+
+            const postBtn = document.getElementById(`btn-post-ad-${ch.id}`);
+            const statusDiv = document.getElementById(`status-msg-${ch.id}`);
+            const mode = ch.post_mode || "global";
+            const originalText = postBtn ? postBtn.textContent : (mode === "bump" ? "Bump Post" : "Publish Ad");
+
+            if (postBtn) {
+                postBtn.disabled = true;
+                postBtn.textContent = mode === "bump" ? "Bumping..." : "Posting...";
+                postBtn.style.background = "rgba(255,255,255,0.15)";
+            }
+
+            ch.last_status = {
+                text: '⏳ Processing request...',
+                type: 'processing'
+            };
+
+            if (statusDiv) {
+                statusDiv.classList.remove('hidden');
+                statusDiv.style.background = 'rgba(255,255,255,0.05)';
+                statusDiv.style.color = 'var(--text-secondary)';
+                statusDiv.style.border = '1px solid var(--border-color)';
+                statusDiv.innerHTML = '⏳ Processing request...';
+            }
+
+            try {
+                let res;
+                if (mode === "bump") {
+                    const isForum = ch.type === 15;
+                    const bumpText = (ch.bump_text || "bump").trim();
+                    
+                    const payload = {
+                        token: token,
+                        channel_id: ch.id,
+                        bump_text: bumpText,
+                        last_posted_id: ch.last_posted_id || "",
+                        is_forum: isForum ? "true" : "false",
+                        account_name: active.name,
+                        channel_name: ch.name,
+                        guild_name: ch.guild_name
+                    };
+
+                    res = await fetch("/api/bump", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    let content = adContentTextarea.value.trim();
+                    let forumTitle = adForumTitleInput.value.trim();
+                    let files = accountFiles[active.id] || [];
+
+                    if (mode === "custom") {
+                        content = (ch.custom_content || "").trim();
+                        forumTitle = (ch.custom_title || "").trim();
+                        const key = active.id + "_" + ch.id;
+                        files = channelFiles[key] || [];
+                    }
+
+                    if (!content && files.length === 0) {
+                        if (!isBatch) alert("Please write a draft or select images before posting.");
+                        if (postBtn) {
+                            postBtn.disabled = false;
+                            postBtn.textContent = originalText;
+                            postBtn.style.background = "";
+                        }
+                        if (statusDiv) {
+                            statusDiv.style.background = 'rgba(255, 85, 85, 0.1)';
+                            statusDiv.style.color = '#ff6b6b';
+                            statusDiv.style.border = '1px solid rgba(255, 85, 85, 0.3)';
+                            statusDiv.innerHTML = '<b>✗ Failed:</b> Draft text or images are required.';
+                        }
+                        return false;
+                    }
+
+                    const isForum = ch.type === 15;
+                    if (isForum && !forumTitle) {
+                        if (!isBatch) alert("Forum channels require a post Title!");
+                        if (postBtn) {
+                            postBtn.disabled = false;
+                            postBtn.textContent = originalText;
+                            postBtn.style.background = "";
+                        }
+                        if (statusDiv) {
+                            statusDiv.style.background = 'rgba(255, 85, 85, 0.1)';
+                            statusDiv.style.color = '#ff6b6b';
+                            statusDiv.style.border = '1px solid rgba(255, 85, 85, 0.3)';
+                            statusDiv.innerHTML = '<b>✗ Failed:</b> Forum title is required.';
+                        }
+                        return false;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("token", token);
+                    formData.append("channel_id", ch.id);
+                    formData.append("content", content);
+                    formData.append("is_forum", isForum ? "true" : "false");
+                    formData.append("account_name", active.name);
+                    formData.append("channel_name", ch.name);
+                    formData.append("guild_name", ch.guild_name);
+                    formData.append("mode", mode);
+                    
+                    if (isForum) {
+                        formData.append("title", forumTitle);
+                        formData.append("tags", (ch.selected_tags || []).join(","));
+                    }
+
+                    if (activePresetName) {
+                        formData.append("preset_name", activePresetName);
+                        
+                        const newGlobal = accountFiles[active.id] || [];
+                        const newCover = forumCoverFiles[active.id] || [];
+                        const cacheKey = active.id + "_" + ch.id;
+                        const newChFiles = channelFiles[cacheKey] || [];
+                        
+                        if (mode === "custom") {
+                            if (newChFiles.length === 0) {
+                                formData.append("use_channel_preset_files", "true");
+                            }
+                        } else {
+                            if (newGlobal.length === 0) {
+                                formData.append("use_preset_files", "true");
+                            }
+                        }
+                        
+                        if (newCover.length === 0) {
+                            formData.append("use_preset_cover", "true");
+                        }
+                    }
+
+                    files.forEach(f => {
+                        formData.append("files", f);
+                    });
+
+                    const globalCovers = forumCoverFiles[active.id] || [];
+                    globalCovers.forEach(f => {
+                        formData.append("cover_files", f);
+                    });
+                    
+                    const coverCacheKey = active.id + "_cover_" + ch.id;
+                    const chCovers = channelCoverFiles[coverCacheKey] || [];
+                    chCovers.forEach(f => {
+                        formData.append("cover_files", f);
+                    });
+
+                    res = await fetch("/api/post", {
+                        method: "POST",
+                        body: formData
+                    });
+                }
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    if (data.id) {
+                        ch.last_posted_id = data.id;
+                    }
+                    ch.last_status = {
+                        text: '<b>✓ Success:</b> Posted successfully!',
+                        type: 'success'
+                    };
+                    saveAccounts();
+
+                    if (postBtn) {
+                        postBtn.textContent = "✓ Success!";
+                        postBtn.style.background = "#2ecc71";
+                        postBtn.style.color = "#ffffff";
+                        setTimeout(() => {
+                            postBtn.textContent = mode === "bump" ? "Bump Post" : "Publish Ad";
+                            postBtn.disabled = false;
+                            postBtn.style.background = "";
+                            postBtn.style.color = "";
+                        }, 4000);
+                    }
+
+                    if (statusDiv) {
+                        statusDiv.style.background = 'rgba(46, 204, 113, 0.1)';
+                        statusDiv.style.color = '#2ecc71';
+                        statusDiv.style.border = '1px solid rgba(46, 204, 113, 0.3)';
+                        statusDiv.innerHTML = '<b>✓ Success:</b> Posted successfully!';
+                    }
+                    return true;
+                } else {
+                    let errMsg = data.message || "Failed.";
+                    let detailMsg = "";
+                    if (data.detail) {
+                        if (typeof data.detail === 'object') {
+                            detailMsg = data.detail.message || JSON.stringify(data.detail);
+                            if (data.detail.code === 50013) {
+                                detailMsg = "Missing Permissions (Cannot write in this channel)";
+                            } else if (data.detail.code === 40002) {
+                                detailMsg = "Account is rate limited/locked or verification required";
+                            } else if (data.detail.code === 10008) {
+                                detailMsg = "Target post/message has been deleted from Discord";
+                            } else if (data.detail.code === 10003) {
+                                detailMsg = "Target channel was deleted or archived";
+                            } else if (data.detail.code === 50001) {
+                                detailMsg = "Missing Access (Not in this server/channel)";
+                            } else if (data.detail.retry_after) {
+                                detailMsg = `Rate Limited - Try again in ${data.detail.retry_after} seconds.`;
+                            }
+                        } else {
+                            detailMsg = data.detail;
+                        }
+                        errMsg = detailMsg; // Use the formatted detail message directly as primary error text
+                    }
+
+                    ch.last_status = {
+                        text: `<b>✗ Failed:</b> ${errMsg}`,
+                        type: 'failed'
+                    };
+                    saveAccounts();
+
+                    if (!isBatch) alert(`Error: ${errMsg}`);
+                    if (postBtn) {
+                        postBtn.textContent = "Failed";
+                        postBtn.style.background = "#ff5555";
+                        postBtn.style.color = "#ffffff";
+                        setTimeout(() => {
+                            postBtn.textContent = originalText;
+                            postBtn.disabled = false;
+                            postBtn.style.background = "";
+                            postBtn.style.color = "";
+                        }, 4000);
+                    }
+
+                    if (statusDiv) {
+                        statusDiv.style.background = 'rgba(255, 85, 85, 0.1)';
+                        statusDiv.style.color = '#ff6b6b';
+                        statusDiv.style.border = '1px solid rgba(255, 85, 85, 0.3)';
+                        statusDiv.innerHTML = `<b>✗ Failed:</b> ${escapeHtml(errMsg)}`;
+                    }
+                    return false;
+                }
+            } catch(err) {
+                console.error(err);
+                
+                ch.last_status = {
+                    text: `<b>✗ Error:</b> Connection failure or backend server offline.`,
+                    type: 'failed'
+                };
+                saveAccounts();
+
+                if (!isBatch) alert("Connection failure.");
+                if (postBtn) {
+                    postBtn.textContent = "Error";
+                    postBtn.style.background = "#ff5555";
+                    setTimeout(() => {
+                        postBtn.textContent = originalText;
+                        postBtn.disabled = false;
+                        postBtn.style.background = "";
+                    }, 4000);
+                }
+                if (statusDiv) {
+                    statusDiv.style.background = 'rgba(255, 85, 85, 0.1)';
+                    statusDiv.style.color = '#ff6b6b';
+                    statusDiv.style.border = '1px solid rgba(255, 85, 85, 0.3)';
+                    statusDiv.innerHTML = `<b>✗ Error:</b> Connection failure or backend server offline.`;
+                }
+                return false;
+            }
+        };
+
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        btnBatchPost.addEventListener('click', async () => {
+            const active = getActiveAccount();
+            if (!active || !active.poster_channels || active.poster_channels.length === 0) {
+                alert("Please add at least one channel to batch post.");
+                return;
+            }
+
+            const token = active.token || tokenInput.value.trim();
+            if (!token) {
+                alert("Token is missing for the active account.");
+                return;
+            }
+
+            const delay = parseInt(batchPostDelayInput.value) || 5;
+            if (delay < 2) {
+                alert("Please enter a delay of at least 2 seconds.");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to run this batch sequence sequentially to all ${active.poster_channels.length} channels with a ${delay}-second delay?`)) {
+                return;
+            }
+
+            btnBatchPost.disabled = true;
+            btnBatchPost.textContent = "Batch Processing...";
+            batchProgressCard.classList.remove('hidden');
+
+            const total = active.poster_channels.length;
+            let successCount = 0;
+
+            for (let i = 0; i < total; i++) {
+                const ch = active.poster_channels[i];
+                const mode = ch.post_mode || "global";
+                const actionVerb = mode === "bump" ? "Bumping" : "Posting";
+                
+                const progressPct = Math.round((i / total) * 100);
+                batchProgressFill.style.width = `${progressPct}%`;
+                batchProgressCount.textContent = `${i} / ${total}`;
+                batchProgressDetail.innerHTML = `${actionVerb} in <b>#${escapeHtml(ch.name)}</b> (${escapeHtml(ch.guild_name)})...`;
+
+                const isSuccess = await publishAdToChannel(i, true);
+                if (isSuccess) successCount++;
+
+                if (i < total - 1) {
+                    for (let s = delay; s > 0; s--) {
+                        batchProgressDetail.innerHTML = `✓ Processed #${escapeHtml(ch.name)}. Waiting <b>${s}s</b> before next channel...`;
+                        await sleep(1000);
+                    }
+                }
+            }
+
+            batchProgressFill.style.width = "100%";
+            batchProgressCount.textContent = `${total} / ${total}`;
+            batchProgressDetail.innerHTML = `🎉 Batch sequence finished! Successfully processed <b>${successCount} / ${total}</b> channels.`;
+            
+            btnBatchPost.disabled = false;
+            btnBatchPost.textContent = "🚀 Run Batch Sequence";
+
+            setTimeout(() => {
+                batchProgressCard.classList.add('hidden');
+                batchProgressFill.style.width = "0%";
+            }, 8000);
+        });
+
+
+
+        // ==========================================
+        //             REAL-TIME WATCHER SECTION
+        // ==========================================
+
+        function renderWatcherChannels() {
+            watcherChannelsContainer.innerHTML = watcherChannels.length === 0 ? 
+                `<p style="font-size:0.85rem; color:var(--text-secondary); width:100%; text-align:center; padding:15px 0;">No channels added to watch.</p>` :
+                watcherChannels.map((ch, index) => {
+                    const isObj = typeof ch === 'object' && ch !== null;
+                    const id = isObj ? ch.id : ch;
+                    const label = isObj ? `#${ch.name} (${ch.guild_name})` : id;
+                    
+                    return `
+                        <div class="keyword-tag-wrapper">
+                            <label class="keyword-tag tag-channel" title="Channel ID: ${escapeHtml(id)}">
+                                <span>📺 ${escapeHtml(label)}</span>
+                            </label>
+                            <button type="button" class="btn-delete-keyword" onclick="deleteWatcherChannel(${index})">&times;</button>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function renderWatcherKeywords() {
+            watcherKeywordsContainer.innerHTML = watcherKeywords.length === 0 ? 
+                `<p style="font-size:0.85rem; color:var(--text-secondary); width:100%; text-align:center; padding:15px 0;">No trigger words configured.</p>` :
+                watcherKeywords.map((kw, index) => `
+                    <div class="keyword-tag-wrapper">
+                        <label class="keyword-tag">
+                            <span>${escapeHtml(kw)}</span>
+                        </label>
+                        <button type="button" class="btn-delete-keyword" onclick="deleteWatcherKeyword(${index})">&times;</button>
+                    </div>
+                `).join('');
+        }
+
+        function renderWatcherExcludes() {
+            watcherExcludesContainer.innerHTML = watcherExcludes.length === 0 ? 
+                `<p style="font-size:0.85rem; color:var(--text-secondary); width:100%; text-align:center; padding:15px 0;">No excludes configured.</p>` :
+                watcherExcludes.map((ex, index) => `
+                    <div class="keyword-tag-wrapper">
+                        <label class="keyword-tag tag-exclude">
+                            <span>${escapeHtml(ex)}</span>
+                        </label>
+                        <button type="button" class="btn-delete-keyword" onclick="deleteWatcherExclude(${index})">&times;</button>
+                    </div>
+                `).join('');
+        }
+
+        window.deleteWatcherChannel = function(index) {
+            watcherChannels.splice(index, 1);
+            const active = getActiveAccount();
+            if (active) {
+                active.watcher_channels = watcherChannels;
+                saveAccounts();
+            }
+            renderWatcherChannels();
+            syncWatcherConfigToBackend();
+        };
+
+        window.deleteWatcherKeyword = function(index) {
+            watcherKeywords.splice(index, 1);
+            const active = getActiveAccount();
+            if (active) {
+                active.watcher_keywords = watcherKeywords;
+                saveAccounts();
+            }
+            renderWatcherKeywords();
+            syncWatcherConfigToBackend();
+        };
+
+        window.deleteWatcherExclude = function(index) {
+            watcherExcludes.splice(index, 1);
+            const active = getActiveAccount();
+            if (active) {
+                active.watcher_excludes = watcherExcludes;
+                saveAccounts();
+            }
+            renderWatcherExcludes();
+            syncWatcherConfigToBackend();
+        };
+
+        btnWatcherAddChannel.addEventListener('click', async () => {
+            const raw = watcherChannelInput.value.trim();
+            if (!raw) return;
+
+            const active = getActiveAccount();
+            if (!active) return;
+
+            const token = active.token || tokenInput.value.trim();
+            if (!token) {
+                alert("Please verify your Discord token is configured for this account.");
+                return;
+            }
+
+            // Split by newlines, commas, or spaces to support multi-line paste
+            const ids = raw.split(/[\n\r,\s]+/).map(s => s.trim()).filter(s => s && /^\d+$/.test(s));
+            if (ids.length === 0) return;
+
+            btnWatcherAddChannel.disabled = true;
+            btnWatcherAddChannel.textContent = `Resolving ${ids.length} channel(s)...`;
+
+            let addedCount = 0;
+            let failedCount = 0;
+
+            for (const channelId of ids) {
+                const exists = watcherChannels.some(ch => {
+                    const id = (typeof ch === 'object' && ch !== null) ? ch.id : ch;
+                    return id === channelId;
+                });
+                if (exists) continue;
+
+                try {
+                    const res = await fetch(`/api/channel/${channelId}`, {
+                        method: 'GET',
+                        headers: { 'Authorization': token }
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        watcherChannels.push({
+                            id: data.id,
+                            name: data.name,
+                            guild_name: data.guild_name
+                        });
+                        addedCount++;
+                    } else {
+                        failedCount++;
+                    }
+                } catch(err) {
+                    console.error(`Failed to resolve ${channelId}:`, err);
+                    failedCount++;
+                }
+                // Small delay between API calls to avoid rate limiting
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            if (addedCount > 0) {
+                if (active) {
+                    active.watcher_channels = watcherChannels;
+                    saveAccounts();
+                }
+                renderWatcherChannels();
+                syncWatcherConfigToBackend();
+            }
+            watcherChannelInput.value = '';
+            if (failedCount > 0) {
+                alert(`Added ${addedCount} channel(s). ${failedCount} failed to resolve.`);
+            }
+
+            btnWatcherAddChannel.disabled = false;
+            btnWatcherAddChannel.textContent = "Add Channels";
+        });
+
+        btnWatcherAddKeyword.addEventListener('click', () => {
+            const val = watcherKeywordInput.value.trim();
+            if (val && !watcherKeywords.includes(val)) {
+                watcherKeywords.push(val);
+                const active = getActiveAccount();
+                if (active) {
+                    active.watcher_keywords = watcherKeywords;
+                    saveAccounts();
+                }
+                renderWatcherKeywords();
+                syncWatcherConfigToBackend();
+                watcherKeywordInput.value = '';
+            }
+        });
+
+        btnWatcherAddExclude.addEventListener('click', () => {
+            const val = watcherExcludeInput.value.trim();
+            if (val && !watcherExcludes.includes(val)) {
+                watcherExcludes.push(val);
+                const active = getActiveAccount();
+                if (active) {
+                    active.watcher_excludes = watcherExcludes;
+                    saveAccounts();
+                }
+                renderWatcherExcludes();
+                syncWatcherConfigToBackend();
+                watcherExcludeInput.value = '';
+            }
+        });
+
+        // Auto-add watcher channels when pasting multiple lines
+        watcherChannelInput.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const raw = watcherChannelInput.value.trim();
+                if (raw.includes('\n')) {
+                    btnWatcherAddChannel.click();
+                }
+            }, 100);
+        });
+        watcherKeywordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') btnWatcherAddKeyword.click(); });
+        watcherExcludeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') btnWatcherAddExclude.click(); });
+
+        async function syncWatcherConfigToBackend() {
+            if (!watcherActive) return;
+            const active = getActiveAccount();
+            if (!active) return;
+            const plainChannelIds = watcherChannels.map(ch => {
+                return (typeof ch === 'object' && ch !== null) ? ch.id : ch;
+            });
+            try {
+                await fetch('/api/watcher/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: active.token,
+                        channels: plainChannelIds,
+                        keywords: watcherKeywords,
+                        excludes: watcherExcludes
+                    })
+                });
+            } catch(e) {
+                console.error("Error updating watcher configuration on backend:", e);
+            }
+        }
+
+        btnWatcherToggle.addEventListener('click', async () => {
+            const active = getActiveAccount();
+            if (!active) return;
+            const token = active.token || tokenInput.value.trim();
+            if (!token) {
+                alert("Please add a Discord authorization token to this account first.");
+                return;
+            }
+            if (watcherChannels.length === 0) {
+                alert("Please add at least one channel to monitor.");
+                return;
+            }
+            if (watcherKeywords.length === 0) {
+                alert("Please add at least one keyword to trigger alerts.");
+                return;
+            }
+
+            if (watcherActive) {
+                // Stop monitoring
+                stopWatcherClient();
+                try {
+                    await fetch('/api/watcher/stop', { method: 'POST' });
+                } catch(e) {
+                    console.error("Error stopping watcher backend thread:", e);
+                }
+            } else {
+                // Start monitoring
+                watcherActive = true;
+                btnWatcherToggle.textContent = "⏹ Stop Monitoring";
+                btnWatcherToggle.style.background = "#ff5555";
+                btnWatcherToggle.style.borderColor = "#ff5555";
+                btnWatcherToggle.style.boxShadow = "0 0 10px rgba(255, 85, 85, 0.3)";
+                watcherStatusCard.classList.remove('hidden');
+                
+                const plainChannelIds = watcherChannels.map(ch => {
+                    return (typeof ch === 'object' && ch !== null) ? ch.id : ch;
+                });
+                try {
+                    const res = await fetch('/api/watcher/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: token,
+                            channels: plainChannelIds,
+                            keywords: watcherKeywords,
+                            excludes: watcherExcludes
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        // Start polling alerts
+                        watcherPollInterval = setInterval(pollWatcherAlerts, 2000);
+                    } else {
+                        alert(data.message || "Failed to start watcher.");
+                        stopWatcherClient();
+                    }
+                } catch(e) {
+                    console.error(e);
+                    alert("Network error starting watcher backend.");
+                    stopWatcherClient();
+                }
+            }
+        });
+
+        function stopWatcherClient() {
+            watcherActive = false;
+            if (watcherPollInterval) {
+                clearInterval(watcherPollInterval);
+                watcherPollInterval = null;
+            }
+            btnWatcherToggle.textContent = "▶ Start Monitoring";
+            btnWatcherToggle.style.background = "#2ecc71";
+            btnWatcherToggle.style.borderColor = "#2ecc71";
+            btnWatcherToggle.style.boxShadow = "0 0 10px rgba(46, 204, 113, 0.3)";
+            watcherStatusCard.classList.add('hidden');
+        }
+
+        async function pollWatcherAlerts() {
+            try {
+                const res = await fetch('/api/watcher/alerts');
+                const data = await res.json();
+                if (data.status === 'success' && data.alerts && data.alerts.length > 0) {
+                    data.alerts.forEach(alert => {
+                        sessionAlerts.unshift(alert); // Add to the top of list
+                        triggerAlertModal(alert);
+                        
+                        // Show browser system notification
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            try {
+                                const notification = new Notification(`Match: ${alert.keyword}`, {
+                                    body: `From ${alert.username} in ${alert.channel_name} (${alert.server_name}): ${alert.content.substring(0, 100)}...`,
+                                    icon: 'https://cdn-icons-png.flaticon.com/512/906/906361.png'
+                                });
+                                notification.onclick = function() {
+                                    window.focus();
+                                    const msgLink = `https://discord.com/channels/${alert.server_id}/${alert.channel_id}/${alert.message_id}`;
+                                    openExternalLink(msgLink);
+                                };
+                            } catch(err) {
+                                console.error("Error displaying HTML5 notification:", err);
+                            }
+                        }
+                    });
+                    renderWatcherAlertLogs();
+                    updateHistoryCount();
+                }
+            } catch(e) {
+                console.error("Watcher polling error:", e);
+            }
+        }
+
+        function playChimeNotification() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.12); // A5
+                gain.gain.setValueAtTime(0.18, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.35);
+            } catch(e) {
+                console.error("Audio Synthesis Blocked/Unsupported:", e);
+            }
+        }
+
+        function triggerAlertModal(alertItem) {
+            playChimeNotification();
+
+            modalServerName.textContent = alertItem.server_name;
+            modalChannelName.textContent = alertItem.channel_name;
+            modalKeywordTag.textContent = alertItem.keyword;
+            modalUsername.textContent = alertItem.username;
+            modalAvatarPlaceholder.textContent = alertItem.username.charAt(0).toUpperCase();
+            modalMessageContent.textContent = alertItem.content;
+
+            const msgLink = `https://discord.com/channels/${alertItem.server_id}/${alertItem.channel_id}/${alertItem.message_id}`;
+            const dmLink = `https://discord.com/users/${alertItem.author_id}`;
+
+            modalLinkJump.onclick = () => { openExternalLink(msgLink); watcherAlertModal.classList.add('hidden'); };
+            modalLinkDm.onclick = () => { openExternalLink(dmLink); watcherAlertModal.classList.add('hidden'); };
+
+            watcherAlertModal.classList.remove('hidden');
+        }
+
+        modalBtnDismiss.addEventListener('click', () => { watcherAlertModal.classList.add('hidden'); });
+
+        function renderWatcherAlertLogs() {
+            if (sessionAlerts.length === 0) {
+                watcherLogsList.innerHTML = `
+                    <div class="no-results">
+                        <div class="icon">🔔</div>
+                        <p>No real-time matches detected yet. Start monitoring to receive alerts.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            watcherLogsList.innerHTML = sessionAlerts.map(item => {
+                const msgLink = `https://discord.com/channels/${item.server_id}/${item.channel_id}/${item.message_id}`;
+                const dmLink = `https://discord.com/users/${item.author_id}`;
+                
+                return `
+                    <div class="glass-card result-card" id="watcher-msg-${item.message_id}" style="border-color: rgba(230, 126, 34, 0.25);">
+                        <div class="result-header">
+                            <div class="user-info">
+                                <div class="avatar-placeholder" style="background:#e67e22;">${item.username.charAt(0).toUpperCase()}</div>
+                                <div class="user-details">
+                                    <span class="username">${escapeHtml(item.username)}</span>
+                                    <span class="timestamp">${new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                                </div>
+                            </div>
+                            <span class="keyword-tag-pill" style="background:rgba(230, 126, 34, 0.15); color:#e67e22;">${escapeHtml(item.keyword)}</span>
+                        </div>
+                        <div class="server-info-row">
+                            <span class="server-name">🏢 ${escapeHtml(item.server_name)}</span>
+                            <span class="channel-name"># ${escapeHtml(item.channel_name)}</span>
+                        </div>
+                        <p class="message-content">${escapeHtml(item.content)}</p>
+                        <div class="result-actions">
+                            <a href="javascript:void(0)" onclick="openExternalLink('${msgLink}')" class="btn btn-secondary btn-sm">Jump to Message</a>
+                            <a href="javascript:void(0)" onclick="openExternalLink('${dmLink}')" class="btn btn-primary btn-sm" style="background:#e67e22; border-color:#e67e22;">Direct Message</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Windows Autostart Checkboxes Integration
+        async function fetchStartupStatus() {
+            try {
+                const res = await fetch('/api/startup/status');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    chkAutostartWindows.checked = !!data.enabled;
+                }
+            } catch(e) {
+                console.error("Error fetching startup status:", e);
+            }
+        }
+
+        chkAutostartWindows.addEventListener('change', async function() {
+            try {
+                const res = await fetch('/api/startup/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enable: this.checked })
+                });
+                const data = await res.json();
+                if (data.status !== 'success') {
+                    alert(data.message || "Failed to update startup settings.");
+                    this.checked = !this.checked; // Revert
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Error connecting to server.");
+                this.checked = !this.checked; // Revert
+            }
+        });
+
+        chkAutostartWatcher.addEventListener('change', function() {
+            const active = getActiveAccount();
+            if (active) {
+                active.auto_start_watcher = this.checked;
+                saveAccounts();
+                syncWatcherConfigToBackend();
+            }
+        });
+
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        console.log("Notification permission:", permission);
+                    });
+                }
+            }
+        }
+
+        // Initialize Accounts & Presets
+        initAccounts();
+        initPresets();
+        syncStorageFromBackend(); // Load config backup from server disk
+        checkScannerStatusOnLoad(); // Restore scan results / status on load
+        fetchStartupStatus();      // Check Windows startup shortcut status
+        requestNotificationPermission();
+        
+        // Navigation Switching
+        navBtnScanner.addEventListener('click', () => {
+            navBtnScanner.classList.add('active');
+            navBtnPoster.classList.remove('active');
+            navBtnWatcher.classList.remove('active');
+            scannerViewModule.classList.remove('hidden');
+            posterViewModule.classList.add('hidden');
+            watcherViewModule.classList.add('hidden');
+        });
+        navBtnPoster.addEventListener('click', () => {
+            navBtnScanner.classList.remove('active');
+            navBtnPoster.classList.add('active');
+            navBtnWatcher.classList.remove('active');
+            scannerViewModule.classList.add('hidden');
+            posterViewModule.classList.remove('hidden');
+            watcherViewModule.classList.add('hidden');
+        });
+        navBtnWatcher.addEventListener('click', () => {
+            navBtnScanner.classList.remove('active');
+            navBtnPoster.classList.remove('active');
+            navBtnWatcher.classList.add('active');
+            scannerViewModule.classList.add('hidden');
+            posterViewModule.classList.add('hidden');
+            watcherViewModule.classList.remove('hidden');
+            renderWatcherChannels();
+            renderWatcherKeywords();
+            renderWatcherExcludes();
+            renderWatcherAlertLogs();
+        });
+        
+        function highlightMessage(msgId) {
+            let el = document.getElementById("msg-" + msgId);
+            if (el) {
+                document.getElementById("nav-btn-scanner").click();
+            } else {
+                el = document.getElementById("watcher-msg-" + msgId);
+                if (el) {
+                    document.getElementById("nav-btn-watcher").click();
+                }
+            }
+            if (el) {
+                setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('highlight-flash');
+                    setTimeout(() => el.classList.remove('highlight-flash'), 3000);
+                }, 150);
+            }
+        }
+
+        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    </script>
+
+</body>
+</html>

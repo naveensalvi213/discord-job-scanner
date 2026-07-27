@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+discord_scanner.log
+*.apk
+jobalerts-app/
+.idea/
+.vscode/
+.gemini/
+scratch/

@@ -11,7 +11,7 @@ else:
 os.chdir(base_dir)
 
 # Prevent crash and capture tracebacks when running in background/packaged mode
-if sys.stdout is None or not sys.stdout.isatty() or "pythonw" in sys.executable.lower() or getattr(sys, 'frozen', False):
+if "pythonw" in sys.executable.lower() or getattr(sys, 'frozen', False):
     try:
         log_file = open("discord_scanner.log", "a", encoding="utf-8")
         sys.stdout = log_file
@@ -1918,4 +1918,5 @@ threading.Thread(target=check_deleted_posts_worker, daemon=True).start()
 check_and_auto_start_watcher()
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

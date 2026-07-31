@@ -56,6 +56,8 @@
                                     <!-- Populated dynamically -->
                                 </select>
                                 <button type="button" id="btn-add-account" class="btn btn-secondary btn-sm" style="font-size: 0.85rem; padding: 6px 12px; height: 38px;">+ Add Account</button>
+                                <button type="button" id="btn-rename-account" class="btn btn-secondary btn-sm" style="font-size: 0.85rem; padding: 6px 12px; height: 38px;">Rename</button>
+                                <button type="button" id="btn-edit-token" class="btn btn-secondary btn-sm" style="font-size: 0.85rem; padding: 6px 12px; height: 38px;">Edit Token</button>
                                 <button type="button" id="btn-delete-account" class="btn btn-secondary btn-sm btn-danger" style="font-size: 0.85rem; padding: 6px 12px; height: 38px; background: rgba(255,85,85,0.15); border-color: rgba(255,85,85,0.3); color: #ff8585;">Delete</button>
                             </div>
                         </div>
@@ -465,6 +467,8 @@
         const posterAccountSelect = document.getElementById('poster-account-select');
         const preferredBrowserSelect = document.getElementById('preferred-browser-select');
         const btnAddAccount = document.getElementById('btn-add-account');
+        const btnRenameAccount = document.getElementById('btn-rename-account');
+        const btnEditToken = document.getElementById('btn-edit-token');
         const btnDeleteAccount = document.getElementById('btn-delete-account');
 
         const posterPresetSelect = document.getElementById('poster-preset-select');
@@ -886,6 +890,30 @@
 
                 populateAccountsSelect();
                 loadActiveAccountState();
+            }
+        });
+
+        btnRenameAccount.addEventListener('click', () => {
+            const active = getActiveAccount();
+            if (active) {
+                const newName = prompt("Enter a new name for this account:", active.name);
+                if (newName && newName.trim()) {
+                    active.name = newName.trim();
+                    saveAccounts();
+                    populateAccountsSelect();
+                }
+            }
+        });
+
+        btnEditToken.addEventListener('click', () => {
+            const active = getActiveAccount();
+            if (active) {
+                const newToken = prompt("Enter the new Discord Token for this account:", active.token);
+                if (newToken && newToken.trim()) {
+                    active.token = newToken.trim();
+                    saveAccounts();
+                    loadActiveAccountState();
+                }
             }
         });
 

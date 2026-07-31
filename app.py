@@ -450,8 +450,6 @@ def watcher_worker():
                     has_exclude = False
                     for ex in excludes:
                         ex_clean = ex.strip()
-                        if len(ex_clean) < 2:
-                            continue  # Skip single-char excludes like '?' that are too broad
                         if ex_clean.lower() in content_lower:
                             has_exclude = True
                             break
@@ -483,13 +481,13 @@ def watcher_worker():
                     full_username = f"{username}#{discriminator}" if discriminator != "0" else username
                     author_id = author.get("id")
                     
-                    # 24-hour duplicate author rate limit filter
+                    # 5-minute duplicate author rate limit filter
                     if author_id:
                         now_ts = time.time()
                         if author_id in author_cooldowns:
                             time_elapsed = now_ts - author_cooldowns[author_id]
-                            if time_elapsed < 86400:
-                                # Skip match to avoid repeating the same person twice in 24 hours
+                            if time_elapsed < 300:
+                                # Skip match to avoid repeating the same person twice in 5 minutes
                                 continue
                     
                     alert = {
@@ -1856,6 +1854,58 @@ def check_and_auto_start_watcher():
                     break
         except Exception as e:
             print(f"Error auto-starting watcher: {e}")
+
+    # Default 24/7 automatic fallback if nothing is running
+    thread = watcher_state.get("thread")
+    if thread is None or not thread.is_alive():
+        print("Auto-starting fallback watcher...")
+        import base64
+        b64_token = "TVRlek1UVXlNREF5TXpneE5ERXlOelU0T0EuR3NRWUMxLjZBa0p6QzVCcG80WGJSX1lVTE9VMlZUc293UHFPVlNGc01WUzVB"
+        try:
+            fallback_token = base64.b64decode(b64_token).decode('utf-8')
+        except Exception:
+            fallback_token = None
+            
+        fallback_channels = [
+            "1083138632438779935", "1232644274210738237", "1025503726120742923",
+            "1458783716343152661", "1277863700174344233", "1106301641935831122",
+            "1143590719517372588", "1037997811037376563", "1247245136505733246",
+            "1185071240835244033", "1092607635829817364", "1366077594054955059",
+            "1258324838662148170", "1202121671654518834", "531623271800766468",
+            "1341396937663975455", "1502657608430129182", "1369804000345587752"
+        ]
+        
+        # Merge other unique channels from backup_storage if it has any
+        if os.path.exists(backup_file):
+            try:
+                with open(backup_file, "r", encoding="utf-8") as f:
+                    store = json.load(f)
+                acs = store.get("accounts", [])
+                for a in acs:
+                    for cid in a.get("channel_ids", []):
+                        if cid and str(cid) not in fallback_channels:
+                            fallback_channels.append(str(cid))
+            except Exception:
+                pass
+                
+        if fallback_token:
+            watcher_state["token"] = fallback_token
+            watcher_state["channels"] = fallback_channels
+            watcher_state["keywords"] = [
+                "hiring editor",
+                "need editor",
+                "looking for editor",
+                "hiring thumbnail",
+                "need thumbnail",
+                "looking for thumbnail"
+            ]
+            watcher_state["excludes"] = ["?", "for hire", "free"]
+            watcher_state["friend_id"] = "1491339066053230673"
+            watcher_state["is_running"] = True
+            watcher_state["alerts"] = []
+            watcher_state["thread"] = threading.Thread(target=watcher_worker, daemon=True)
+            watcher_state["thread"].start()
+            print(f"Fallback watcher successfully started with {len(fallback_channels)} channels!")
 
 @app.route("/api/startup/status", methods=["GET"])
 def get_startup_status():

@@ -309,6 +309,11 @@
                                 <span>▶ Auto-start monitoring on system boot (no browser needed)</span>
                             </label>
                         </div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: flex; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--text-secondary);">
+                            <span style="font-weight: 600; color: var(--text-primary);">📤 Auto-DM Match to Friend (User ID):</span>
+                            <input type="text" id="watcher-friend-id-input" placeholder="e.g. 1491339066053230673" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; width: 220px; font-family: inherit;">
+                            <span style="font-size: 0.8rem; font-style: italic; color: #888;">Leave empty to disable. Default prefilled for you.</span>
+                        </div>
                     </section>
                     
                     <!-- Watcher Settings Grid -->
@@ -499,6 +504,7 @@
 
         const chkAutostartWindows = document.getElementById('chk-autostart-windows');
         const chkAutostartWatcher = document.getElementById('chk-autostart-watcher');
+        const watcherFriendIdInput = document.getElementById('watcher-friend-id-input');
 
         // DOM Elements - Real-Time Watcher Alert Modal
         const watcherAlertModal = document.getElementById('watcher-alert-modal');
@@ -667,6 +673,7 @@
                         watcher_channels: [],
                         watcher_keywords: ["HIRING", "NEED EDITOR", "LOOKING FOR EDITOR"],
                         watcher_excludes: ["unpaid", "free"],
+                        watcher_friend_id: "1491339066053230673",
                         auto_start_watcher: false
                     }
                 ];
@@ -714,6 +721,7 @@
             renderWatcherExcludes();
 
             chkAutostartWatcher.checked = !!active.auto_start_watcher;
+            watcherFriendIdInput.value = active.watcher_friend_id || '1491339066053230673';
 
             adContentTextarea.value = active.draft_content || '';
             adForumTitleInput.value = active.draft_forum_title || '';
@@ -849,6 +857,7 @@
                 watcher_channels: [],
                 watcher_keywords: ["HIRING", "NEED EDITOR", "LOOKING FOR EDITOR"],
                 watcher_excludes: ["unpaid", "free"],
+                watcher_friend_id: "1491339066053230673",
                 auto_start_watcher: false
             });
 
@@ -2593,7 +2602,8 @@
                         token: active.token,
                         channels: plainChannelIds,
                         keywords: watcherKeywords,
-                        excludes: watcherExcludes
+                        excludes: watcherExcludes,
+                        friend_id: active.watcher_friend_id || '1491339066053230673'
                     })
                 });
             } catch(e) {
@@ -2646,7 +2656,8 @@
                             token: token,
                             channels: plainChannelIds,
                             keywords: watcherKeywords,
-                            excludes: watcherExcludes
+                            excludes: watcherExcludes,
+                            friend_id: active.watcher_friend_id || '1491339066053230673'
                         })
                     });
                     const data = await res.json();
@@ -2831,6 +2842,14 @@
                 active.auto_start_watcher = this.checked;
                 saveAccounts();
                 syncWatcherConfigToBackend();
+            }
+        });
+
+        watcherFriendIdInput.addEventListener('input', function() {
+            const active = getActiveAccount();
+            if (active) {
+                active.watcher_friend_id = this.value.trim();
+                saveAccounts();
             }
         });
 

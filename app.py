@@ -324,6 +324,36 @@ def load_author_cooldowns():
             print(f"Error loading author cooldowns: {e}")
     return cooldowns
 
+def send_discord_dm(token, recipient_id, content):
+    clean_token = token.strip().strip('"').strip("'") if token else ""
+    headers = {
+        "Authorization": clean_token,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/json",
+        "Connection": "close"
+    }
+    try:
+        # Step 1: Create or open direct DM channel
+        dm_url = "https://discord.com/api/v9/users/@me/channels"
+        dm_res = requests.post(dm_url, headers=headers, json={"recipient_id": str(recipient_id)}, timeout=10.0)
+        
+        if dm_res.status_code in [200, 201]:
+            channel_id = dm_res.json().get("id")
+            if channel_id:
+                # Step 2: Send DM message
+                msg_url = f"https://discord.com/api/v9/channels/{channel_id}/messages"
+                msg_res = requests.post(msg_url, headers=headers, json={"content": content}, timeout=10.0)
+                if msg_res.status_code in [200, 201]:
+                    print(f"Successfully sent DM to {recipient_id}")
+                else:
+                    print(f"Failed to send DM message. Code: {msg_res.status_code}, Response: {msg_res.text}")
+            else:
+                print("Failed to retrieve DM channel ID from Discord response.")
+        else:
+            print(f"Failed to open DM channel with {recipient_id}. Code: {dm_res.status_code}, Response: {dm_res.text}")
+    except Exception as e:
+        print(f"Exception during send_discord_dm: {e}")
+
 def watcher_worker():
     global watcher_state
     
@@ -477,6 +507,29 @@ def watcher_worker():
                     
                     notification_text = f"From {full_username} in {channel_name} ({guild_name}): {content[:80]}..."
                     show_windows_notification(f"Match: {matched_keyword}", notification_text, launch_url=f"jobscanner://{msg_id}")
+                    
+                    friend_id = watcher_state.get("friend_id", "1491339066053230673")
+                    if friend_id:
+                        dm_text = (
+                            f"🚨 **New Job Match!**\n"
+                            f"**Server:** {guild_name}\n"
+                            f"**Channel:** {channel_name}\n"
+                            f"**Posted By:** {full_username}\n"
+                            f"**Keyword:** {matched_keyword}\n\n"
+                            f"**Post Details:**\n{content}"
+                        )
+                        if len(dm_text) > 1950:
+                            over_limit = len(dm_text) - 1950
+                            trimmed_content = content[:-over_limit] + "..."
+                            dm_text = (
+                                f"🚨 **New Job Match!**\n"
+                                f"**Server:** {guild_name}\n"
+                                f"**Channel:** {channel_name}\n"
+                                f"**Posted By:** {full_username}\n"
+                                f"**Keyword:** {matched_keyword}\n\n"
+                                f"**Post Details:**\n{trimmed_content}"
+                            )
+                        threading.Thread(target=send_discord_dm, args=(token, friend_id, dm_text), daemon=True).start()
                     
             except Exception as e:
                 print(f"Watcher error scanning channel {channel_id}: {e}")
@@ -1600,6 +1653,7 @@ def start_watcher():
     channels = data.get("channels", [])
     keywords = data.get("keywords", [])
     excludes = data.get("excludes", [])
+    friend_id = data.get("friend_id", "1491339066053230673")
     
     if not token:
         return jsonify({"status": "error", "message": "Token is required."}), 400
@@ -1608,6 +1662,7 @@ def start_watcher():
     watcher_state["channels"] = channels
     watcher_state["keywords"] = keywords
     watcher_state["excludes"] = excludes
+    watcher_state["friend_id"] = friend_id
     
     if not watcher_state["is_running"]:
         watcher_state["is_running"] = True
@@ -1747,6 +1802,7 @@ def check_and_auto_start_watcher():
             channels = cfg.get("channel_ids") or cfg.get("channels", [])
             keywords = cfg.get("keywords", [])
             excludes = cfg.get("exclude_keywords") or cfg.get("excludes", [])
+            friend_id = cfg.get("friend_id", "1491339066053230673")
             
             if token and channels and keywords:
                 print("Auto-starting real-time watcher from config.json...")
@@ -1754,6 +1810,7 @@ def check_and_auto_start_watcher():
                 watcher_state["channels"] = [str(c) for c in channels]
                 watcher_state["keywords"] = keywords
                 watcher_state["excludes"] = excludes
+                watcher_state["friend_id"] = friend_id
                 watcher_state["is_running"] = True
                 watcher_state["alerts"] = []
                 watcher_state["thread"] = threading.Thread(target=watcher_worker, daemon=True)
@@ -1784,6 +1841,7 @@ def check_and_auto_start_watcher():
                     watcher_state["channels"] = plain_channels
                     watcher_state["keywords"] = ac.get("watcher_keywords", [])
                     watcher_state["excludes"] = ac.get("watcher_excludes", [])
+                    watcher_state["friend_id"] = ac.get("watcher_friend_id", "1491339066053230673")
                     watcher_state["is_running"] = True
                     watcher_state["alerts"] = []
                     watcher_state["thread"] = threading.Thread(target=watcher_worker, daemon=True)

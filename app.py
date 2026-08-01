@@ -113,7 +113,7 @@ def show_windows_notification(title, message, launch_url="jobscanner://"):
             $toast.Content = $doc
             $notifier.Show($toast)
             '''
-            subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=False, creationflags=subprocess.CREATE_NO_WINDOW)
+            subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=False, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         except Exception as e:
             print(f"Failed to show Windows notification: {e}")
     threading.Thread(target=run_notification, daemon=True).start()
@@ -141,7 +141,7 @@ def set_startup_shortcut(enable=True):
         $Shortcut.IconLocation = "shell32.dll,23"
         $Shortcut.Save()
         """
-        subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         return True
     except Exception as e:
         print(f"Error setting startup shortcut: {e}")
@@ -1624,9 +1624,15 @@ def open_link():
         import subprocess
         if browser == "discord_app":
             app_url = url.replace("https://", "discord://").replace("http://", "discord://")
-            os.startfile(app_url)
+            if hasattr(os, 'startfile'):
+                os.startfile(app_url)
+            else:
+                __import__('subprocess').Popen(['xdg-open', app_url])
         elif browser == "edge":
-            os.startfile(f"microsoft-edge:{url}")
+            if hasattr(os, 'startfile'):
+                os.startfile(f"microsoft-edge:{url}")
+            else:
+                __import__('subprocess').Popen(['xdg-open', f"microsoft-edge:{url}"])
         elif browser == "chrome":
             chrome_paths = [
                 os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
@@ -1641,7 +1647,7 @@ def open_link():
                     launched = True
                     break
             if not launched:
-                subprocess.Popen(['cmd.exe', '/c', f'start chrome "{url}"'], shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                subprocess.Popen(['cmd.exe', '/c', f'start chrome "{url}"'], shell=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         else:
             import webbrowser
             webbrowser.open(url)
